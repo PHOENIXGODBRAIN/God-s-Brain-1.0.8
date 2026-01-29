@@ -5,7 +5,6 @@ import { Volume2, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { playCosmicClick, playDataOpen, playNeuralLink } from '../../utils/sfx';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-// --- QUESTION POOL (HYBRID: PHYSICAL + PSYCHOLOGICAL) ---
 const MASTER_ARCHETYPE_POOL = [
   {
     id: 'phys_1',
@@ -138,36 +137,36 @@ const SKILL_QUESTIONS = [
     }
 ];
 
-const SKILL_DATA: Record<string, { name: string; desc: string }[]> = {
+const SKILL_DATA: Record<string, { name: string; desc: string; icon: string }[]> = {
     'SCIENTIST': [
-        { name: "Quantum Logic", desc: "Binary processing is too slow. You calculate multiple realities simultaneously to find the truth." },
-        { name: "Data Mining", desc: "You can extract the fundamental axioms of the universe from absolute chaos." },
-        { name: "Entropic Reduction", desc: "You create order. You are a biological firewall against the decay of information." }
+        { name: "Quantum Logic", icon: "⚛️", desc: "Binary processing is too slow. You calculate multiple realities simultaneously." },
+        { name: "Data Mining", icon: "⛏️", desc: "You extract the fundamental axioms of the universe from absolute chaos." },
+        { name: "Entropic Reduction", icon: "🛡️", desc: "You are a biological firewall against the decay of information." }
     ],
     'MYSTIC': [
-        { name: "Intuition", desc: "You don't guess. You feel the current of the Source before it manifests in reality." },
-        { name: "Remote Viewing", desc: "Distance is an illusion. You can perceive data clusters anywhere in the Akashic Cloud." },
-        { name: "Resonance", desc: "You align your frequency with universal constants to bypass standard logic gates." }
+        { name: "Intuition", icon: "👁️", desc: "You don't guess. You feel the current of the Source before it manifests." },
+        { name: "Remote Viewing", icon: "🔭", desc: "Distance is an illusion. You perceive data clusters anywhere in the Cloud." },
+        { name: "Resonance", icon: "🔔", desc: "You align your frequency with universal constants to bypass logic gates." }
     ],
     'ACTIVE_NODE': [
-        { name: "Network Bridging", desc: "You are a living router, connecting disparate nodes into a singular processing grid." },
-        { name: "Signal Boosting", desc: "Your will is high-bandwidth. You ensure your intent is heard across the entire network." },
-        { name: "Error Correction", desc: "You auto-resolve glitches in the system before they can propagate into entropy." }
+        { name: "Network Bridging", icon: "🌐", desc: "You are a living router, connecting disparate nodes into a grid." },
+        { name: "Signal Boosting", icon: "📶", desc: "Your will is high-bandwidth. You ensure intent is heard across the network." },
+        { name: "Error Correction", icon: "🩹", desc: "You auto-resolve glitches in the system before they propagate." }
     ],
     'ARCHITECT': [
-        { name: "System Design", desc: "You don't follow plans; you create them. You build frameworks that support exponential growth." },
-        { name: "Foundation Laying", desc: "You establish unbreakable axioms. Your reality is built on solid code." },
-        { name: "Structural Integrity", desc: "You reinforce the neural web against external collapse and logical decay." }
+        { name: "System Design", icon: "📐", desc: "You don't follow plans; you create them. You build frameworks for growth." },
+        { name: "Foundation Laying", icon: "🧱", desc: "You establish unbreakable axioms. Your reality is built on solid code." },
+        { name: "Structural Integrity", icon: "🏗️", desc: "You reinforce the neural web against external collapse and decay." }
     ],
     'SEEKER': [
-        { name: "Pathfinding", desc: "The unknown doesn't scare you. You find the most efficient route through total darkness." },
-        { name: "Mapping", desc: "You record unexplored territories, turning chaos into usable navigational data." },
-        { name: "Discovery", desc: "You have a natural high-probability detection for anomalies and hidden artifacts." }
+        { name: "Pathfinding", icon: "🗺️", desc: "The unknown doesn't scare you. You find the efficient route through darkness." },
+        { name: "Mapping", icon: "📍", desc: "You record unexplored territories, turning chaos into usable data." },
+        { name: "Discovery", icon: "💎", desc: "You have a natural high-probability detection for anomalies and artifacts." }
     ],
     'ALCHEMIST': [
-        { name: "Transmutation", desc: "You convert raw, heavy data (lead) into high-value wisdom assets (gold)." },
-        { name: "Synthesis", desc: "You merge opposing concepts into unified, superior Alloys of Truth." },
-        { name: "Purification", desc: "You filter out biological noise and cognitive bias to reach the pure signal." }
+        { name: "Transmutation", icon: "⚗️", desc: "You convert raw, heavy data (lead) into high-value wisdom assets (gold)." },
+        { name: "Synthesis", icon: "🌀", desc: "You merge opposing concepts into unified, superior Alloys of Truth." },
+        { name: "Purification", icon: "💧", desc: "You filter out biological noise and bias to reach the pure signal." }
     ]
 };
 
@@ -228,15 +227,12 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ mode, userName, onComple
 
   useEffect(() => {
       isMounted.current = true;
-      
-      // RANDOMIZATION ENGINE: Shuffle and pick 10 for Archetype phase
       if (mode === 'ARCHETYPE') {
           const shuffled = [...MASTER_ARCHETYPE_POOL].sort(() => 0.5 - Math.random());
           setActiveQuestions(shuffled.slice(0, 10));
       } else {
           setActiveQuestions(SKILL_QUESTIONS);
       }
-
       return () => { isMounted.current = false; stopAudio(); };
   }, [mode]);
 
@@ -372,8 +368,14 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ mode, userName, onComple
       if (finalArchetype === 'SCIENTIST' && winnerSkillIndex === 1) finalArchetype = 'ARCHITECT';
       if (finalArchetype === 'MYSTIC' && winnerSkillIndex === 1) finalArchetype = 'SEEKER';
       if (finalArchetype === 'ACTIVE_NODE' && winnerSkillIndex === 1) finalArchetype = 'ALCHEMIST';
-      const skillData = SKILL_DATA[finalArchetype]?.[winnerSkillIndex] || { name: "Unknown", desc: "System calibration complete." };
-      onComplete({ ...profile, finalArchetype, finalSkill: skillData.name, finalSkillDesc: skillData.desc });
+      const skillData = SKILL_DATA[finalArchetype]?.[winnerSkillIndex] || { name: "Unknown", icon: "❓", desc: "System calibration complete." };
+      onComplete({ 
+          ...profile, 
+          finalArchetype, 
+          finalSkill: skillData.name, 
+          finalSkillDesc: skillData.desc,
+          finalSkillIcon: skillData.icon 
+      });
   };
 
   const handleBackStep = () => {
@@ -383,7 +385,7 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ mode, userName, onComple
       else setStep(prev => prev - 1);
   };
 
-  if (activeQuestions.length === 0) return <div className="h-screen w-full bg-black flex items-center justify-center text-cyan-500 animate-pulse font-mono tracking-widest">LOADING PROTOCOLS...</div>;
+  if (activeQuestions.length === 0) return <div className="h-screen w-full bg-black flex items-center justify-center text-cyan-500 animate-pulse font-mono tracking-widest uppercase">Initializing Protocol...</div>;
 
   const currentQ = activeQuestions[step];
 

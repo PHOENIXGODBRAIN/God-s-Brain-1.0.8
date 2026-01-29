@@ -8,55 +8,45 @@ interface CosmicBackgroundProps {
 
 export const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ path = UserPath.NONE }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: -1000, y: -1000 }); // Start off-screen
+  const mouseRef = useRef({ x: -1000, y: -1000 });
 
-  // --- CONFIGURATION MATRIX ---
   const getConfig = (p: UserPath) => {
     switch (p) {
       case UserPath.SCIENTIFIC:
         return {
-          // Precise, cold, analytical
-          colors: ['rgba(0, 255, 255, ', 'rgba(59, 130, 246, '], // Cyan & Blue
+          colors: ['#00FFFF', '#3B82F6'], 
           lineColor: 'rgba(0, 255, 255, ',
-          speedMod: 0.4,
-          particleCount: 160,
-          connectionDistance: 120,
-          interactionRadius: 200,
-          bgGradient: ['#000000', '#0f172a'] // Slate tone
+          particleCount: 120,
+          connectionDist: 150,
+          forceRadius: 200,
+          speedMod: 0.5
         };
       case UserPath.RELIGIOUS:
         return {
-          // Deep, spiritual, pulsing
-          colors: ['rgba(168, 85, 247, ', 'rgba(99, 102, 241, '], // Purple & Indigo
+          colors: ['#A855F7', '#6366F1'], 
           lineColor: 'rgba(168, 85, 247, ',
-          speedMod: 0.25,
           particleCount: 100,
-          connectionDistance: 180,
-          interactionRadius: 350,
-          bgGradient: ['#000000', '#1e1b4b'] // Indigo tone
+          connectionDist: 180,
+          forceRadius: 300,
+          speedMod: 0.3
         };
       case UserPath.BLENDED:
         return {
-          // High energy, wealth, power (Phoenix)
-          colors: ['rgba(234, 179, 8, ', 'rgba(255, 69, 0, '], // Gold & Red-Orange
-          lineColor: 'rgba(234, 179, 8, ',
-          speedMod: 1.5,
-          particleCount: 200,
-          connectionDistance: 130,
-          interactionRadius: 250,
-          bgGradient: ['#000000', '#271005'] // Warm tone
+          colors: ['#FFD700', '#FF4500'], 
+          lineColor: 'rgba(255, 215, 0, ',
+          particleCount: 150,
+          connectionDist: 140,
+          forceRadius: 250,
+          speedMod: 1.2
         };
-      case UserPath.NONE:
       default:
         return {
-          // The Void / Genesis State
-          colors: ['rgba(0, 255, 255, ', 'rgba(234, 179, 8, '], // Cyan & Gold mix
-          lineColor: 'rgba(0, 255, 255, ',
-          speedMod: 0.6,
-          particleCount: 120,
-          connectionDistance: 140,
-          interactionRadius: 250,
-          bgGradient: ['#000000', '#020617'] // Deep space
+          colors: ['#00FFFF', '#FFD700', '#A855F7'], 
+          lineColor: 'rgba(255, 255, 255, ',
+          particleCount: 110,
+          connectionDist: 140,
+          forceRadius: 250,
+          speedMod: 0.6
         };
     }
   };
@@ -70,23 +60,98 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ path = UserP
     let width = window.innerWidth;
     let height = window.innerHeight;
     let animationFrameId: number;
-    
     const config = getConfig(path);
 
-    interface Particle {
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        size: number;
-        color: string;
-        baseX: number; // For "home" position seeking if needed
-        baseY: number;
+    class Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      color: string;
+
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * config.speedMod;
+        this.vy = (Math.random() - 0.5) * config.speedMod;
+        this.size = Math.random() * 2 + 0.5;
+        this.color = config.colors[Math.floor(Math.random() * config.colors.length)];
+      }
+
+      update() {
+        const dx = mouseRef.current.x - this.x;
+        const dy = mouseRef.current.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < config.forceRadius) {
+          const force = (config.forceRadius - distance) / config.forceRadius;
+          const dir = path === UserPath.SCIENTIFIC ? 1 : -1; 
+          this.vx += (dx / distance) * force * 0.5 * dir;
+          this.vy += (dy / distance) * force * 0.5 * dir;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.95; 
+        this.vy *= 0.95;
+
+        if (this.x < 0) this.x = width;
+        if (this.x > width) this.x = 0;
+        if (this.y < 0) this.y = height;
+        if (this.y > height) this.y = 0;
+      }
+
+      draw() {
+        if (!ctx) return;
+        const pulse = Math.sin(Date.now() * 0.002 + this.x) * 0.3 + 0.7;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = pulse;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
     }
 
     let particles: Particle[] = [];
+    const init = () => {
+      particles = [];
+      for (let i = 0; i < config.particleCount; i++) {
+        particles.push(new Particle());
+      }
+    };
 
-    const resize = () => {
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+      
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a + 1; b < particles.length; b++) {
+          const dx = particles[a].x - particles[b].x;
+          const dy = particles[a].y - particles[b].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < config.connectionDist) {
+            const opacity = 1 - (distance / config.connectionDist);
+            ctx.strokeStyle = config.lineColor + (opacity * 0.3) + ')';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    const handleResize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
       canvas.width = width;
@@ -94,170 +159,27 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = ({ path = UserP
       init();
     };
 
-    const init = () => {
-      particles = [];
-      for (let i = 0; i < config.particleCount; i++) {
-        const size = Math.random() * 2 + 0.5;
-        // Distribute colors from config
-        const colorIdx = Math.floor(Math.random() * config.colors.length);
-        const color = config.colors[colorIdx];
-        
-        particles.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          vx: (Math.random() - 0.5) * config.speedMod, 
-          vy: (Math.random() - 0.5) * config.speedMod,
-          size: size,
-          color: color,
-          baseX: Math.random() * width,
-          baseY: Math.random() * height
-        });
-      }
-    };
-
     const handleMouseMove = (e: MouseEvent) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseRef.current = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    };
-    
-    const handleTouchMove = (e: TouchEvent) => {
-        const rect = canvas.getBoundingClientRect();
-        if(e.touches.length > 0) {
-            mouseRef.current = {
-                x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top
-            };
-        }
-    }
-
-    const draw = () => {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, width, height);
-
-      // Reactive Background Gradient
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, config.bgGradient[0]);
-      gradient.addColorStop(1, config.bgGradient[1]);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-      
-      // Update and Draw Particles
-      for (let i = 0; i < particles.length; i++) {
-        let p = particles[i];
-        
-        // --- MOUSE INTERACTION (The "Fluid" Feel) ---
-        const dx = mouseRef.current.x - p.x;
-        const dy = mouseRef.current.y - p.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < config.interactionRadius) {
-            const forceDirectionX = dx / distance;
-            const forceDirectionY = dy / distance;
-            const force = (config.interactionRadius - distance) / config.interactionRadius;
-            
-            // Gentle repulsion to create a path
-            const repulsionStrength = 0.8;
-            p.vx -= forceDirectionX * force * repulsionStrength;
-            p.vy -= forceDirectionY * force * repulsionStrength;
-        }
-
-        // --- CONSTANT STORY FLOW ---
-        // Add a tiny bit of constant drift to simulate camera movement through space
-        // Scientist: Ordered drift. Seeker: Upward drift. Active: Forward drift.
-        if (path === UserPath.RELIGIOUS) p.y -= 0.1; 
-        else if (path === UserPath.BLENDED) p.x += 0.3;
-        else p.x += 0.1; // Default
-        
-        // Velocity damping (friction)
-        p.vx *= 0.98;
-        p.vy *= 0.98;
-
-        // Apply Velocity
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // --- SCREEN WRAP ---
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
-
-        // Draw Particle (Star/Neuron)
-        // Pulsing opacity
-        const pulse = Math.sin(Date.now() * 0.003 + p.x) * 0.2 + 0.8;
-        
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${pulse})`; 
-        ctx.fill();
-      }
-
-      // --- NEURAL CONNECTIONS ---
-      // Thinner lines for Scientist, thicker for Active
-      ctx.lineWidth = path === UserPath.SCIENTIFIC ? 0.3 : 0.6;
-      
-      for (let a = 0; a < particles.length; a++) {
-          for (let b = a + 1; b < particles.length; b++) {
-              const dx = particles[a].x - particles[b].x;
-              const dy = particles[a].y - particles[b].y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-
-              if (dist < config.connectionDistance) {
-                  const opacity = 1 - (dist / config.connectionDistance);
-                  // Use configured line color
-                  ctx.strokeStyle = `${config.lineColor}${opacity * 0.4})`; 
-                  ctx.beginPath();
-                  ctx.moveTo(particles[a].x, particles[a].y);
-                  ctx.lineTo(particles[b].x, particles[b].y);
-                  ctx.stroke();
-              }
-          }
-      }
-
-      // --- CURSOR GLOW ---
-      if (mouseRef.current.x > 0) {
-          const mouseGlow = ctx.createRadialGradient(mouseRef.current.x, mouseRef.current.y, 0, mouseRef.current.x, mouseRef.current.y, 300);
-          // Glow color matches theme
-          const glowColor = path === UserPath.BLENDED ? 'rgba(234, 179, 8, 0.1)' : 
-                            path === UserPath.RELIGIOUS ? 'rgba(168, 85, 247, 0.1)' : 
-                            'rgba(0, 255, 255, 0.05)';
-                            
-          mouseGlow.addColorStop(0, glowColor);
-          mouseGlow.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = mouseGlow;
-          ctx.beginPath();
-          ctx.arc(mouseRef.current.x, mouseRef.current.y, 300, 0, Math.PI*2);
-          ctx.fill();
-      }
-
-      animationFrameId = requestAnimationFrame(draw);
+        mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove);
-    
-    // Set initial size
-    resize();
-    init();
-    draw();
+
+    handleResize();
+    animate();
 
     return () => {
-        window.removeEventListener('resize', resize);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('touchmove', handleTouchMove);
-        cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [path]); // Re-initialize when path changes
+  }, [path]);
 
   return (
-    <div className="fixed inset-0 z-[-1] bg-black transition-colors duration-1000">
-        <canvas ref={canvasRef} className="absolute inset-0" />
-        {/* Cinematic Overlays */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none"></div>
+    <div className="fixed inset-0 z-[-1] bg-black">
+       <canvas ref={canvasRef} className="block w-full h-full" />
+       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.7)_100%)] pointer-events-none"></div>
     </div>
   );
 };

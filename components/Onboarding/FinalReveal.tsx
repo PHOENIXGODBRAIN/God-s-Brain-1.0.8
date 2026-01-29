@@ -76,7 +76,10 @@ export const FinalReveal: React.FC<FinalRevealProps> = ({ profile, onAccept, onB
                         <div className="grid md:grid-cols-3 gap-6 items-start">
                             <div className="col-span-1">
                                 <div className="flex items-center gap-2 mb-3"><Brain className={`w-4 h-4 text-${details.color}-500`} /><span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Functional Module</span></div>
-                                <div className="text-xl font-tech text-white uppercase tracking-tight">{finalSkill}</div>
+                                <div className="text-xl font-tech text-white uppercase tracking-tight flex items-center gap-2">
+                                    <span className="text-2xl">{profile?.finalSkillIcon || '⚡'}</span>
+                                    {finalSkill}
+                                </div>
                             </div>
                             <div className="col-span-2">
                                 <p className="text-gray-300 font-reading text-sm italic opacity-80 leading-relaxed">"{profile?.finalSkillDesc || 'Metabolic optimization complete.'}"</p>
