@@ -27,8 +27,8 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   const getTheme = () => {
       const base = {
           SCIENTIST: { color: '#00FFFF', label: 'THE SCIENTIST' },
-          MYSTIC: { color: '#A855F7', label: 'THE MYSTIC' },
-          ACTIVE_NODE: { color: '#FF4500', label: 'ACTIVE NODE' },
+          MYSTIC: { color: '#FFD700', label: 'THE MYSTIC' }, // FIXED: Amber/Gold
+          ACTIVE_NODE: { color: '#A855F7', label: 'ACTIVE NODE' }, // FIXED: Purple
           ARCHITECT: { color: '#F43F5E', label: 'THE ARCHITECT' }, 
           SEEKER: { color: '#F97316', label: 'THE SEEKER' },
           ALCHEMIST: { color: '#10B981', label: 'THE ALCHEMIST' }
@@ -63,27 +63,27 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
-  // --- STATE: MORPHOLOGY (Calibrated Defaults) ---
-  const [somaSize, setSomaSize] = useState(25); 
+  // --- STATE: MORPHOLOGY (Defaulted to Starter Baseline) ---
+  const [somaSize, setSomaSize] = useState(20); 
   const [aspectRatio, setAspectRatio] = useState(50); 
-  const [bodyDistortion, setBodyDistortion] = useState(15); 
-  const [nucleusSize, setNucleusSize] = useState(15); 
-  const [armLength, setArmLength] = useState(15); // Default shorter
-  const [armThickness, setArmThickness] = useState(35); // Default thicker
+  const [bodyDistortion, setBodyDistortion] = useState(10); 
+  const [nucleusSize, setNucleusSize] = useState(12); 
+  const [armLength, setArmLength] = useState(12); 
+  const [armThickness, setArmThickness] = useState(30); 
   
   const [somaLum, setSomaLum] = useState(20); 
-  const [textureDensity, setTextureDensity] = useState(30); 
+  const [textureDensity, setTextureDensity] = useState(25); 
   const [textureStyle, setTextureStyle] = useState<TextureStyle>('POROUS');
   const [somaColor, setSomaColor] = useState<string>(theme.color); 
   const [nucleusColor, setNucleusColor] = useState<string>(theme.color); 
 
-  const [waviness, setWaviness] = useState(15); // Always moves
+  const [waviness, setWaviness] = useState(10); // Genetic Wiggle
   const [spikeFactor, setSpikeFactor] = useState(0); 
   const [spikeAngle, setSpikeAngle] = useState(50); 
   const [spineStyle, setSpineStyle] = useState<SpineStyle>('THORNS');
   
-  const [spookySpeed, setSpookySpeed] = useState(8); 
-  const [pulseIntensity, setPulseIntensity] = useState(10); 
+  const [spookySpeed, setSpookySpeed] = useState(5); 
+  const [pulseIntensity, setPulseIntensity] = useState(5); 
   const [trailLevel, setTrailLevel] = useState(5); 
   
   const rotationRef = useRef(0); 
@@ -120,17 +120,17 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
         setSpookySpeed(rand(100));
         setPulseIntensity(rand(100));
         setTrailLevel(rand(100));
-        setWaviness(Math.max(10, rand(100))); // Randomize but never zero
+        setWaviness(Math.max(10, rand(100))); 
     }
   };
 
   const handleResetToClass = () => {
     playMenuSelect();
-    setSomaSize(25); setAspectRatio(50); setBodyDistortion(15); setNucleusSize(15);
-    setSomaLum(20); setTextureDensity(30); setTextureStyle('POROUS'); 
-    setSomaColor(theme.color); setNucleusColor(theme.color); setArmLength(15);
-    setArmThickness(35); setWaviness(15); setSpikeFactor(0); setSpikeAngle(50);
-    setSpookySpeed(8); setPulseIntensity(10); setTrailLevel(5);
+    setSomaSize(20); setAspectRatio(50); setBodyDistortion(10); setNucleusSize(12);
+    setSomaLum(20); setTextureDensity(25); setTextureStyle('POROUS'); 
+    setSomaColor(theme.color); setNucleusColor(theme.color); setArmLength(12);
+    setArmThickness(30); setWaviness(10); setSpikeFactor(0); setSpikeAngle(50);
+    setSpookySpeed(5); setPulseIntensity(5); setTrailLevel(5);
   };
 
   const handleSliderChange = useCallback((v: number, setter: (v: number) => void, cap: number = 100, isHardLocked: boolean = false) => {
@@ -149,7 +149,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       if (type === 'NUCLEUS') setNucleusColor(hex);
   };
 
-  // --- INPUT HANDLERS ---
   useEffect(() => {
       const el = containerRef.current;
       if (!el) return;
@@ -200,7 +199,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       };
   }, []);
 
-  // --- RENDER ENGINE ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -242,15 +240,14 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
 
         // --- 1. ARMS ---
         const reachFac = isUnlocked ? (armLength / 100) : (Math.min(armLength, 25) / 100);
-        const armReach = 40 + (reachFac * 260); 
+        const armReach = 35 + (reachFac * 180); 
         const sSizeVal = 40 + (somaSize / 100 * 40);
         const startRad = sSizeVal * 0.85;
         
         const thickFac = isUnlocked ? (armThickness / 100) : (Math.min(armThickness, 50) / 100);
         const lineWidth = (thickFac * 20) + 2; 
 
-        // Flow State: Never Zero Logic + Halved Max
-        const flowIntensity = ((waviness / 100) * 0.025) + 0.005;
+        const flowIntensity = ((waviness / 100) * 0.012) + 0.004;
 
         for (let i = 0; i < 4; i++) {
             const baseAng = (Math.PI / 2) * i + (Math.PI / 4) + currentRot;
@@ -267,7 +264,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
             ctx.strokeStyle = somaColor; ctx.lineWidth = lineWidth; ctx.stroke();
             ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = lineWidth * 0.3; ctx.stroke();
 
-            // Synaptic Spines
             if (spikeFactor > 0) {
                  ctx.beginPath();
                  for(let j=2; j<pts.length-1; j+=3) {
@@ -275,14 +271,16 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                      const dx = pts[j+1].x - p.x; const dy = pts[j+1].y - p.y;
                      const armTangent = Math.atan2(dy, dx);
                      const ang = armTangent + ((spikeAngle / 100 * 180) * Math.PI / 180);
-                     const lenMult = spineStyle === 'THREADS' ? 1.7 : 1.0;
+                     
+                     const isThreads = spineStyle === 'THREADS';
+                     const lenMult = isThreads ? 2.2 : 1.0;
                      const len = ((spikeFactor / 100 * 20) + 4) * lenMult;
                      const ex = p.x + Math.cos(ang)*len;
                      const ey = p.y + Math.sin(ang)*len;
                      
                      ctx.moveTo(p.x, p.y);
-                     if (spineStyle === 'THREADS') {
-                         ctx.quadraticCurveTo(p.x + Math.cos(ang+0.25)*len*0.6, p.y + Math.sin(ang+0.25)*len*0.6, ex, ey);
+                     if (isThreads) {
+                         ctx.quadraticCurveTo(p.x + Math.cos(ang+0.4)*len*0.7, p.y + Math.sin(ang+0.4)*len*0.7, ex, ey);
                      } else {
                          ctx.lineTo(ex, ey);
                      }
@@ -290,29 +288,27 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                      if (spineStyle === 'BULBS') {
                          ctx.save();
                          ctx.fillStyle = somaColor;
-                         ctx.shadowColor = somaColor; ctx.shadowBlur = 10;
-                         ctx.beginPath(); ctx.arc(ex, ey, 4.5, 0, Math.PI*2); ctx.fill();
-                         ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                         ctx.beginPath(); ctx.arc(ex-1.5, ey-1.5, 1.2, 0, Math.PI*2); ctx.fill();
+                         ctx.shadowColor = somaColor; ctx.shadowBlur = 12;
+                         ctx.beginPath(); ctx.arc(ex, ey, 5.5, 0, Math.PI*2); ctx.fill();
+                         ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                         ctx.beginPath(); ctx.arc(ex-1.8, ey-1.8, 1.4, 0, Math.PI*2); ctx.fill();
                          ctx.restore();
                      }
                  }
-                 ctx.lineWidth = spineStyle === 'THREADS' ? 0.9 : 1.4;
+                 ctx.lineWidth = spineStyle === 'THREADS' ? 0.6 : 1.4;
                  ctx.strokeStyle = somaColor; ctx.stroke();
             }
             
-            // Bio-Glow Tips
             const tip = pts[pts.length-1];
             ctx.save();
-            ctx.beginPath(); ctx.arc(tip.x, tip.y, lineWidth * 0.75, 0, Math.PI * 2);
-            const tg = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, lineWidth * 1.5);
-            tg.addColorStop(0, '#ffffff'); tg.addColorStop(0.3, somaColor); tg.addColorStop(1, 'transparent');
-            ctx.fillStyle = tg; ctx.shadowColor = somaColor; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(tip.x, tip.y, lineWidth * 0.9, 0, Math.PI * 2);
+            const tg = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, lineWidth * 2.0);
+            tg.addColorStop(0, '#ffffff'); tg.addColorStop(0.2, somaColor); tg.addColorStop(1, 'transparent');
+            ctx.fillStyle = tg; ctx.shadowColor = somaColor; ctx.shadowBlur = 25;
             ctx.fill();
             ctx.restore();
         }
 
-        // --- 2. SOMA (Body Shape) ---
         ctx.save();
         ctx.rotate(currentRot);
         const bodyRatio = 0.85 + (aspectRatio / 100) * 0.30;
@@ -343,15 +339,12 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // --- Membrane Coverage Enhancement ---
         if (textureDensity > 0) {
             ctx.clip();
-            // Scaling count based on density (Max 0.40 requested)
-            const countFactor = (textureDensity / 100) * 1.5; 
             if (textureStyle === 'POROUS') {
-                for(let j=0; j<textureDensity * 1.2; j++) {
+                for(let j=0; j<textureDensity * 1.4; j++) {
                     const r = (j * 137.5) * (Math.PI/180); 
-                    const d = Math.sqrt(j / (textureDensity * 1.2)) * (sRad * 0.9);
+                    const d = Math.sqrt(j / (textureDensity * 1.4)) * (sRad * 0.9);
                     const ox = Math.cos(r) * d; const oy = Math.sin(r) * d;
                     const sz = (Math.sin(j) + 2) * 2.8;
                     ctx.beginPath(); ctx.arc(ox, oy, sz, 0, Math.PI*2);
@@ -361,7 +354,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                 }
             } else if (textureStyle === 'BIO_SYNAPSE') {
                 ctx.beginPath();
-                for(let j=0; j<textureDensity; j++) {
+                for(let j=0; j<textureDensity * 1.2; j++) {
                     const a = (j/textureDensity)*Math.PI*8 + time*0.1; 
                     const d = (Math.sin(j) * 0.5 + 0.5) * sRad * 0.8;
                     ctx.moveTo(0,0); ctx.quadraticCurveTo(Math.cos(a)*d*0.5, Math.sin(a)*d*0.5, Math.cos(a)*d, Math.sin(a)*d);
@@ -374,7 +367,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
         }
         ctx.restore();
 
-        // --- 3. NUCLEUS ---
         ctx.save();
         ctx.rotate(currentRot);
         const nSize = Math.max(3.5, (nucleusSize / 100 * 24) + heart);
@@ -390,7 +382,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(frameId); };
   }, [somaLum, armLength, armThickness, waviness, spikeFactor, spikeAngle, somaColor, nucleusColor, aspectRatio, bodyDistortion, somaSize, nucleusSize, textureDensity, zoom, spookySpeed, pulseIntensity, trailLevel, textureStyle, theme, isUnlocked, spineStyle]);
 
-  // --- ACTIONS ---
   const handleFinish = () => {
     let progress = 0;
     const interval = setInterval(() => {
@@ -430,14 +421,12 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                     )}
                     <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-cyan-900 to-cyan-500" style={{ width: `${val}%` }} />
                 </div>
-                {/* Zero-Jitter Native Input */}
                 <input 
                     type="range" min="0" max="100" value={val} 
                     onChange={(e) => handleSliderChange(parseInt(e.target.value), setter, activeCap, locked)} 
                     onMouseDown={() => playMenuSelect()}
                     className="w-full h-full opacity-0 cursor-ew-resize z-20"
                 />
-                {/* Handle without transition-all to prevent jitter */}
                 <div 
                     className="absolute w-4 h-4 bg-white rounded-full border-2 border-black shadow-[0_0_15px_white] pointer-events-none z-10"
                     style={{ left: `calc(${val}% - 8px)` }}
@@ -450,7 +439,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   return (
     <div className="absolute inset-0 w-full h-full bg-[#050505] flex flex-col landscape:flex-row text-[#e0f2fe] font-mono overflow-hidden select-none">
       
-      {/* PREVIEW */}
       <div ref={containerRef} className="h-[45%] landscape:h-full landscape:w-[55%] relative flex flex-col items-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black p-4 border-r border-white/5 cursor-move group/preview">
           <div className="w-full flex items-center justify-between z-20">
               <button onClick={onBack} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"><ArrowLeft className="w-4 h-4" /></button>
@@ -475,7 +463,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
           </div>
       </div>
 
-      {/* CUSTOMIZATION */}
       <div className="flex-1 landscape:w-[45%] flex flex-col bg-black/40 backdrop-blur-md border-t landscape:border-t-0 border-white/5 overflow-hidden">
           <div className="flex border-b border-white/10 shrink-0">
               {['STRUCTURE', 'SURFACE', 'MOTION', 'MUTATION'].map(t => (
@@ -531,7 +518,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
 
               {activeTab === 'MUTATION' && (
                   <div className="space-y-8 animate-fadeIn">
-                      <Slide label="Flow State" icon={<Waves className="w-3 h-3"/>} val={waviness} setter={setWaviness} displayMin={0.01} displayMax={0.02} maxCap={5} />
+                      <Slide label="Flow State" icon={<Waves className="w-3 h-3"/>} val={waviness} setter={setWaviness} displayMin={0.01} displayMax={0.012} maxCap={5} />
                       <Slide label="Spiny Protrusions" icon={<Triangle className="w-3 h-3"/>} val={spikeFactor} setter={setSpikeFactor} displayMin={0.00} displayMax={1.00} locked={true} />
                       <Slide label="Protrusion Angle" icon={<Compass className="w-3 h-3"/>} val={spikeAngle} setter={setSpikeAngle} displayMin={0} displayMax={180} locked={true} />
                       <div>

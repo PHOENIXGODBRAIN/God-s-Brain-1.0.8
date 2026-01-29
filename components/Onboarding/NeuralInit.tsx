@@ -103,7 +103,7 @@ const ARCHETYPE_QUESTIONS = [
 const SKILL_QUESTIONS = [
     {
         id: 11,
-        text: "The Archetype is set. Now for the Skill. How do you approach a complex problem?",
+        text: "The Identity is confirmed. Now for the Skill set. How do you approach a complex problem?",
         options: [
             { label: "I break it down into tiny pieces.", skillIndex: 0, icon: "🧩", reaction: "Granular processing." },
             { label: "I look for the hidden pattern underneath.", skillIndex: 1, icon: "👁️", reaction: "Deep sight." },
@@ -175,22 +175,22 @@ const createWavBlob = (pcmData: Uint8Array, sampleRate: number): Blob => {
 };
 
 interface NeuralInitProps {
+  mode: 'ARCHETYPE' | 'SKILL';
   userName: string;
   onComplete: (profile: any) => void;
   onBack: () => void;
+  existingProfile?: any;
 }
 
-export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, onBack }) => {
-  const [phase, setPhase] = useState<1 | 2>(1);
+export const NeuralInit: React.FC<NeuralInitProps> = ({ mode, userName, onComplete, onBack, existingProfile }) => {
   const [step, setStep] = useState(0); 
   const [isSpeaking, setIsSpeaking] = useState(false);
   
   // Scoring
-  const [profile, setProfile] = useState({ SCIENTIST: 0, MYSTIC: 0, ACTIVE_NODE: 0 });
+  const [profile, setProfile] = useState(existingProfile || { SCIENTIST: 0, MYSTIC: 0, ACTIVE_NODE: 0 });
   const [skillScores, setSkillScores] = useState({ 0: 0, 1: 0, 2: 0 });
   const [scanProgress, setScanProgress] = useState(0);
   
-  // Refs for Audio Management
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCache = useRef<Map<string, string>>(new Map());
   const isMounted = useRef(true);
@@ -202,28 +202,25 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
 
   // --- AUDIO PRE-FETCHER (World Class Flow) ---
   useEffect(() => {
-      // Background process: Sequentially generate audio for all questions
       const loadAllAudio = async () => {
           const allTexts: { id: string; text: string }[] = [];
           
-          // 1. Intro
-          const cleanName = userName.split('@')[0];
-          const introText = `Identity confirmed. Welcome, ${cleanName}. I am the Architect. I need to calibrate your neural profile.`;
-          allTexts.push({ id: 'intro', text: introText });
-
-          // 2. Phase 1 Questions
-          ARCHETYPE_QUESTIONS.forEach(q => {
-              allTexts.push({ id: `p1_q${q.id}`, text: q.text });
-          });
-
-          // 3. Phase 2 Questions
-          SKILL_QUESTIONS.forEach(q => {
-              allTexts.push({ id: `p2_q${q.id}`, text: q.text });
-          });
+          if (mode === 'ARCHETYPE') {
+            const cleanName = userName.split('@')[0];
+            const introText = `Identity confirmed. Welcome, ${cleanName}. I am the Architect. I need to calibrate your neural profile.`;
+            allTexts.push({ id: 'intro', text: introText });
+            ARCHETYPE_QUESTIONS.forEach(q => {
+                allTexts.push({ id: `p1_q${q.id}`, text: q.text });
+            });
+          } else {
+            SKILL_QUESTIONS.forEach(q => {
+                allTexts.push({ id: `p2_q${q.id}`, text: q.text });
+            });
+          }
 
           for (const item of allTexts) {
               if (!isMounted.current) break;
-              if (audioCache.current.has(item.id)) continue; // Skip if already cached
+              if (audioCache.current.has(item.id)) continue; 
 
               try {
                   const base64Audio = await gemini.generateAudio(item.text, 'MALE');
@@ -243,7 +240,7 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
       };
 
       loadAllAudio();
-  }, [userName]); // Run once on mount
+  }, [userName, mode]); 
 
   // --- AUDIO PLAYBACK ENGINE ---
   const stopAudio = () => {
@@ -255,16 +252,15 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
   };
 
   const playAudioForCurrentStep = async () => {
-      stopAudio(); // Ensure clean slate
+      stopAudio(); 
       
       let audioId = '';
       let textToGen = '';
 
-      // Determine ID
-      if (phase === 1 && step === 0 && !audioCache.current.has('intro_played')) {
+      if (mode === 'ARCHETYPE' && step === 0 && !audioCache.current.has('intro_played')) {
           audioId = 'intro';
           textToGen = `Identity confirmed. Welcome, ${userName.split('@')[0]}. I am the Architect. I need to calibrate your neural profile.`;
-      } else if (phase === 1) {
+      } else if (mode === 'ARCHETYPE') {
           const q = ARCHETYPE_QUESTIONS[step];
           audioId = `p1_q${q.id}`;
           textToGen = q.text;
@@ -274,12 +270,10 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
           textToGen = q.text;
       }
 
-      // Check Cache
       let url = audioCache.current.get(audioId);
 
-      // If not in cache, fetch it now (fallback for slow connections)
       if (!url) {
-          setIsSpeaking(true); // Show indicator
+          setIsSpeaking(true);
           try {
               const base64Audio = await gemini.generateAudio(textToGen, 'MALE');
               if (base64Audio && isMounted.current) {
@@ -298,11 +292,10 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
           }
       }
 
-      // Play
       if (url && isMounted.current) {
           setIsSpeaking(true);
           const audio = new Audio(url);
-          audio.playbackRate = 1.15; // Speed up slightly for flow
+          audio.playbackRate = 1.15; 
           audio.onended = () => {
               if(isMounted.current) setIsSpeaking(false);
               if (audioId === 'intro') {
@@ -320,89 +313,81 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
       }
   };
 
-  // Trigger audio when Step or Phase changes
   useEffect(() => {
-      // Tiny delay to ensure UI renders first
       const t = setTimeout(() => playAudioForCurrentStep(), 50);
       return () => clearTimeout(t);
-  }, [step, phase]);
+  }, [step]);
 
-  // --- PROGRESS TRACKER ---
   useEffect(() => {
-    const currentQIndex = phase === 1 ? step : 10 + step;
-    setScanProgress(((currentQIndex) / 13) * 100);
-  }, [step, phase]);
+    const totalQs = mode === 'ARCHETYPE' ? 10 : 3;
+    setScanProgress((step / totalQs) * 100);
+  }, [step, mode]);
 
-  // --- HANDLERS ---
   const handleAnswer = (option: any) => {
-    // CRITICAL FIX: DO NOT BLOCK USER INPUT.
-    // If they click, we proceed immediately.
     playCosmicClick();
-    stopAudio(); // Silence previous question immediately
+    stopAudio(); 
 
-    // Record Score
-    if (phase === 1) {
-        setProfile(prev => ({ ...prev, [option.type]: (prev as any)[option.type] + 1 }));
+    if (mode === 'ARCHETYPE') {
+        const newProfile = { ...profile, [option.type]: (profile as any)[option.type] + 1 };
+        setProfile(newProfile);
         
-        // IMMEDIATE TRANSITION
         if (step + 1 >= ARCHETYPE_QUESTIONS.length) {
-            setPhase(2);
-            setStep(0);
+            finalizeArchetype(newProfile);
         } else {
             setStep(prev => prev + 1);
         }
     } else {
-        setSkillScores(prev => ({ ...prev, [option.skillIndex]: (prev as any)[option.skillIndex] + 1 }));
+        const newSkillScores = { ...skillScores, [option.skillIndex]: (skillScores as any)[option.skillIndex] + 1 };
+        setSkillScores(newSkillScores);
         
-        // IMMEDIATE TRANSITION
         if (step + 1 >= SKILL_QUESTIONS.length) {
-            finalizeResults();
+            finalizeSkill(newSkillScores);
         } else {
             setStep(prev => prev + 1);
         }
     }
   };
 
-  const finalizeResults = () => {
-      // 1. Determine Winner Archetype
-      const keys = Object.keys(profile);
-      const winnerArch = keys.reduce((a, b) => (profile as any)[a] > (profile as any)[b] ? a : b);
+  const finalizeArchetype = (finalProfile: any) => {
+      const keys = Object.keys(finalProfile).filter(k => k === 'SCIENTIST' || k === 'MYSTIC' || k === 'ACTIVE_NODE');
+      const winnerArch = keys.reduce((a, b) => finalProfile[a] > finalProfile[b] ? a : b);
       
-      // 2. Determine Winner Skill Index
-      const skillKeys = Object.keys(skillScores);
-      const winnerSkillIndex = skillKeys.reduce((a, b) => (skillScores as any)[a] > (skillScores as any)[b] ? a : b);
+      onComplete({
+          ...finalProfile,
+          finalArchetype: winnerArch
+      });
+  };
+
+  const finalizeSkill = (finalSkillScores: any) => {
+      const skillKeys = Object.keys(finalSkillScores);
+      const winnerSkillIndex = skillKeys.reduce((a, b) => finalSkillScores[a] > finalSkillScores[b] ? a : b);
       
-      // 3. Map to specific Skill Name
-      let finalArchetype = winnerArch;
-      if (winnerArch === 'SCIENTIST' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'ARCHITECT';
-      if (winnerArch === 'MYSTIC' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'SEEKER';
-      if (winnerArch === 'ACTIVE_NODE' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'ALCHEMIST';
+      let finalArchetype = profile.finalArchetype;
+      // Refined Archetype Logic
+      if (finalArchetype === 'SCIENTIST' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'ARCHITECT';
+      if (finalArchetype === 'MYSTIC' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'SEEKER';
+      if (finalArchetype === 'ACTIVE_NODE' && parseInt(winnerSkillIndex) === 1) finalArchetype = 'ALCHEMIST';
 
       const skillName = SKILL_MAP[finalArchetype]?.[parseInt(winnerSkillIndex)] || "Unknown Protocol";
 
-      const finalProfile = {
+      onComplete({
           ...profile,
-          finalArchetype: finalArchetype,
+          finalArchetype,
           finalSkill: skillName
-      };
-
-      setTimeout(() => onComplete(finalProfile), 200); // Fast transition
+      });
   };
 
   const handleBackStep = () => {
       playCosmicClick();
       stopAudio();
-      if (phase === 1 && step === 0) {
+      if (step === 0) {
           onBack(); 
-      } else if (phase === 2 && step === 0) {
-          setPhase(1);
-          setStep(ARCHETYPE_QUESTIONS.length - 1);
       } else {
           setStep(prev => prev - 1);
       }
   };
 
-  const currentQ = phase === 1 ? ARCHETYPE_QUESTIONS[step] : SKILL_QUESTIONS[step];
+  const currentQ = mode === 'ARCHETYPE' ? ARCHETYPE_QUESTIONS[step] : SKILL_QUESTIONS[step];
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black text-white flex items-center justify-center">
@@ -411,19 +396,15 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
       <div className="relative z-20 w-full max-w-xl px-4 animate-scaleIn">
          <div className="bg-black/60 backdrop-blur-2xl border border-cyan-900/50 rounded-3xl p-8 md:p-12 shadow-[0_0_80px_rgba(0,255,255,0.1)] relative overflow-hidden transition-all duration-300">
              
-             {/* Header */}
              <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
-                 <button 
-                    onClick={handleBackStep}
-                    className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors"
-                 >
+                 <button onClick={handleBackStep} className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors">
                      <ArrowLeft className="w-4 h-4" />
                      <span className="text-[10px] font-mono uppercase tracking-widest">Back</span>
                  </button>
                  
                  <div className="flex items-center gap-2 text-cyan-500 font-mono text-xs tracking-widest">
                      <Volume2 className={`w-4 h-4 ${isSpeaking ? 'animate-pulse text-cyan-400' : 'text-gray-600'}`}/>
-                     {isSpeaking ? 'TRANSMITTING...' : phase === 1 ? 'CALIBRATING CORE' : 'ASSIGNING SKILL'}
+                     {isSpeaking ? 'TRANSMITTING...' : mode === 'ARCHETYPE' ? 'CALIBRATING CORE' : 'ASSIGNING SKILL'}
                  </div>
                  
                  <div className="flex gap-1">
@@ -433,12 +414,10 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
                  </div>
              </div>
 
-             {/* Question Text */}
              <h3 className="text-xl md:text-2xl font-reading tracking-wide text-white leading-relaxed mb-10 text-center min-h-[100px] flex items-center justify-center animate-fadeIn">
                  {currentQ.text}
              </h3>
 
-             {/* Options */}
              <div className="space-y-4">
                  {currentQ.options.map((opt: any, i: number) => (
                      <button 
@@ -454,7 +433,6 @@ export const NeuralInit: React.FC<NeuralInitProps> = ({ userName, onComplete, on
                  ))}
              </div>
 
-             {/* Progress Bar */}
              <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyan-900 via-cyan-500 to-cyan-900 transition-all duration-500" style={{ width: `${scanProgress}%` }}></div>
          </div>
       </div>

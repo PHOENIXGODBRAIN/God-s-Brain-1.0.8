@@ -15,7 +15,7 @@ import { NeuronBuilder } from './components/Onboarding/NeuronBuilder';
 import { TransitionScreen } from './components/TransitionScreen';
 import { WarpScreen } from './components/WarpScreen';
 
-type OnboardingStep = 'PORTAL' | 'SHOWCASE' | 'INIT' | 'REVEAL' | 'WARP' | 'BUILDER' | 'COMPLETE';
+type OnboardingStep = 'PORTAL' | 'SHOWCASE' | 'INIT' | 'REVEAL' | 'SKILL_INIT' | 'WARP' | 'BUILDER' | 'COMPLETE';
 
 const AppContent: React.FC = () => {
   const [path, setPath] = useState<UserPath>(UserPath.NONE);
@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('gb_user_database', JSON.stringify(db));
   };
 
-  // --- INITIALIZATION ---
+  // --- INITIALIZATION (WITH BLANK SCREEN FIX) ---
   useEffect(() => {
     const savedPath = localStorage.getItem('gb_path') as UserPath;
     const savedAuthToken = localStorage.getItem('gb_auth_token');
@@ -63,7 +63,8 @@ const AppContent: React.FC = () => {
       const db = getUserDB();
       const emailKey = Object.keys(db).find(key => savedAuthToken.includes(key));
       
-      if (emailKey && db[emailKey]) {
+      // CRITICAL FIX: Ensure record AND record.profile exist before committing to UI step
+      if (emailKey && db[emailKey] && db[emailKey].profile) {
          const record = db[emailKey];
          setUserProfile(record.profile);
          setIsAuthenticated(true);
@@ -80,6 +81,10 @@ const AppContent: React.FC = () => {
          } else {
              setOnboardingStep('SHOWCASE');
          }
+      } else {
+        // CORRUPT DATA DETECTED: Force reset to Portal for safety
+        localStorage.removeItem('gb_auth_token');
+        setOnboardingStep('PORTAL');
       }
     } else {
         setOnboardingStep('PORTAL');
@@ -111,16 +116,16 @@ const AppContent: React.FC = () => {
           setOnboardingStep('SHOWCASE');
       } else if (onboardingStep === 'REVEAL') {
           setOnboardingStep('INIT');
+      } else if (onboardingStep === 'SKILL_INIT') {
+          setOnboardingStep('REVEAL');
       } else if (onboardingStep === 'BUILDER') {
           if (path !== UserPath.NONE) {
               setOnboardingStep('COMPLETE');
           } else {
-              setOnboardingStep('REVEAL');
+              setOnboardingStep('SKILL_INIT');
           }
       }
   };
-
-  // --- ACTION HANDLERS ---
 
   const handleLoginSuccess = (email: string) => {
     const profile: UserProfile = {
@@ -163,8 +168,8 @@ const AppContent: React.FC = () => {
   
   const handleShowcaseContinue = () => {
       triggerTransition('INIT', "INITIALIZING CALIBRATION", [
-          "Loading psychometric matrix...",
-          "Preparing neural baseline...",
+          "Loading core psychometric matrix...",
+          "Phase 1: Identity Extraction...",
           "Sequence Ready."
       ]);
   };
@@ -213,26 +218,42 @@ const AppContent: React.FC = () => {
      }
   };
 
-  const handleCalibrationComplete = (profile: any) => {
+  // HANDLER FOR PHASE 1: DETERMINING ARCHETYPE
+  const handleArchetypeCalibrationComplete = (profile: any) => {
       setCalibrationProfile(profile);
       setArchetypeKey(profile.finalArchetype || 'ACTIVE_NODE');
       
-      // TRIGGER TRANSITION TO REVEAL
       triggerTransition('REVEAL', "ANALYZING NEURAL ARCHITECTURE", [
-          "Compiling psychometric data...",
-          "Comparing against archetype database...",
-          "Match found...",
+          "Compiling core identity data...",
+          "Archetype match detected.",
           "Generating profile..."
       ]);
   };
 
   const handleAcceptArchetype = (selectedPath: UserPath, color: string) => {
     setPath(selectedPath);
-    localStorage.setItem('gb_path', selectedPath);
     setWarpColor(color);
     
-    // GO TO WARP SCREEN
-    setOnboardingStep('WARP');
+    // TRANSITION TO PHASE 2: SKILLS
+    triggerTransition('SKILL_INIT', "IDENTITY INTEGRATED", [
+        "Calibrating skill sub-processors...",
+        "Phase 2: Functional Assessment...",
+        "Ready."
+    ]);
+  };
+
+  // HANDLER FOR PHASE 2: DETERMINING SKILL
+  const handleSkillCalibrationComplete = (profileWithSkill: any) => {
+      setCalibrationProfile(profileWithSkill);
+      localStorage.setItem('gb_path', path);
+      
+      handleUpdateProfile({ 
+          archetype: profileWithSkill.finalArchetype, 
+          startingSkill: profileWithSkill.finalSkill 
+      });
+
+      // PROCEED TO WARP
+      setOnboardingStep('WARP');
   };
 
   const handleWarpComplete = () => {
@@ -341,8 +362,9 @@ const AppContent: React.FC = () => {
         
         {onboardingStep === 'INIT' && userProfile && (
             <NeuralInit 
+                mode="ARCHETYPE"
                 userName={userProfile.name} 
-                onComplete={handleCalibrationComplete} 
+                onComplete={handleArchetypeCalibrationComplete} 
                 onBack={handleGoBack}
             />
         )}
@@ -352,6 +374,16 @@ const AppContent: React.FC = () => {
                 profile={calibrationProfile} 
                 onAccept={handleAcceptArchetype} 
                 onBack={handleGoBack}
+            />
+        )}
+
+        {onboardingStep === 'SKILL_INIT' && userProfile && (
+            <NeuralInit 
+                mode="SKILL"
+                userName={userProfile.name} 
+                onComplete={handleSkillCalibrationComplete} 
+                onBack={handleGoBack}
+                existingProfile={calibrationProfile}
             />
         )}
 
