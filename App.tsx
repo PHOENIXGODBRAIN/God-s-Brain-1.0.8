@@ -171,7 +171,12 @@ const AppContent: React.FC = () => {
       } else if (onboardingStep === 'SKILL_INIT') {
           setOnboardingStep('REVEAL');
       } else if (onboardingStep === 'SYNTHESIS') {
-          setOnboardingStep('SKILL_INIT');
+          // If came from manual selection, go back to showcase
+          if (calibrationProfile?.manual) {
+              setOnboardingStep('SHOWCASE');
+          } else {
+              setOnboardingStep('SKILL_INIT');
+          }
       } else if (onboardingStep === 'BUILDER') {
           if (path !== UserPath.NONE) {
               setOnboardingStep('COMPLETE');
@@ -254,16 +259,21 @@ const AppContent: React.FC = () => {
       localStorage.setItem('gb_path', selectedPath);
       setArchetypeKey(id);
 
+      // Prep Profile for Synthesis Screen
+      setCalibrationProfile({
+          finalArchetype: id,
+          finalSkill: skill,
+          manual: true // Flag to know we came from manual selection
+      });
+
       handleUpdateProfile({ 
           archetype: id, 
           startingSkill: skill 
       });
 
-      triggerTransition('BUILDER', `INITIALIZING ${id} PROTOCOL`, [
-          `Allocating resources for ${skill}...`,
-          "Bypassing standard calibration...",
-          "Bio-Forge Ready."
-      ]);
+      // FLOW FIX: Trigger WARP -> SYNTHESIS (Reveal) -> Then User clicks Accept to go to BUILDER
+      setWarpTarget('SYNTHESIS');
+      setOnboardingStep('WARP');
   };
 
   const handleUpdateProfile = (updates: Partial<UserProfile>) => {

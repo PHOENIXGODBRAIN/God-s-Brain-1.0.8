@@ -74,7 +74,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({ onLoginSuccess }) => {
                     </div>
 
                     <div className="text-[#00FFFF] text-[10px] uppercase tracking-[0.3em] font-mono mb-4 animate-pulse">
-                        UPLINK READY
+                        UPLINK READY // v1.1.0
                     </div>
                 </div>
             )}

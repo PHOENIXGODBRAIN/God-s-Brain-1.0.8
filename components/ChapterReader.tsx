@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Lock, Search, Music, ChevronLeft, ChevronRight, Play, Pause, ShieldAlert, X, ArrowLeft, Zap, FileText } from 'lucide-react';
+import { Lock, Search, Music, ChevronLeft, ChevronRight, Play, Pause, ShieldAlert, X, ArrowLeft, Zap, FileText, Type } from 'lucide-react';
 import { Chapter } from '../types';
 import { FULL_MANUSCRIPT, SUMMARIES } from '../data/manuscript';
 import { playMenuSelect, playDataOpen, playCosmicClick, playError, playNeuralLink } from '../utils/sfx';
@@ -16,6 +16,7 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
   const [searchQuery, setSearchQuery] = useState('');
   const [isReadingMusicPlaying, setReadingMusic] = useState(false);
   const [securityWarning, setSecurityWarning] = useState(false);
+  const [textSize, setTextSize] = useState<number>(18); // Default font size
 
   // Map ID to Manuscript Content or Summary
   const getContent = (id: number) => {
@@ -37,6 +38,11 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
     setTimeout(() => setSecurityWarning(false), 2000);
   };
 
+  const adjustTextSize = (delta: number) => {
+      playCosmicClick();
+      setTextSize(prev => Math.min(32, Math.max(14, prev + delta)));
+  };
+
   // ADVANCED SEARCH ENGINE: Indexing titles + subtitle + full content
   const searchResults = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -51,31 +57,72 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
     });
   }, [chapters, searchQuery]);
 
+  // KINDLE-LIKE PARAGRAPH FORMATTER WITH HIGHLIGHTING
+  const renderContent = (text: string) => {
+    // Split by double newlines to form paragraphs
+    const paragraphs = text.split('\n');
+    
+    return paragraphs.map((para, i) => {
+        if (!para.trim()) return <br key={i} />;
+        
+        // Highlight search term
+        let content: React.ReactNode = para;
+        if (searchQuery.trim().length > 2) {
+            const parts = para.split(new RegExp(`(${searchQuery})`, 'gi'));
+            content = parts.map((part, j) => 
+                part.toLowerCase() === searchQuery.toLowerCase() ? (
+                    <span key={j} className="bg-yellow-500/30 text-yellow-200 rounded px-0.5 font-bold">{part}</span>
+                ) : part
+            );
+        }
+
+        return (
+            <p 
+                key={i} 
+                className="mb-6 leading-loose text-gray-300 font-reading"
+                style={{ fontSize: `${textSize}px`, lineHeight: `${textSize * 1.6}px` }}
+            >
+                {content}
+            </p>
+        );
+    });
+  };
+
   return (
     <div className="flex flex-col h-full text-white animate-fadeIn">
       
       {/* 1. READER TOOLBAR */}
-      <div className="flex items-center gap-4 mb-8 bg-black/40 p-4 rounded-2xl border border-white/10 backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-8 bg-black/40 p-4 rounded-2xl border border-white/10 backdrop-blur-xl">
         <div className="flex-1 flex items-center bg-gray-900/80 px-4 py-2.5 rounded-xl border border-gray-700 focus-within:border-cyan-500 transition-all">
           <Search size={16} className="text-gray-500 mr-3" />
           <input 
             type="text" 
-            placeholder="Search Akashic Records (Title or Content)..." 
+            placeholder="Search Akashic Records (Title, Content, or Numbers)..." 
             className="bg-transparent border-none focus:outline-none text-xs w-full text-white placeholder-gray-600 font-mono"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         
-        <button 
-          onClick={() => { playCosmicClick(); setReadingMusic(!isReadingMusicPlaying); }}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-tech tracking-widest transition-all ${
-            isReadingMusicPlaying ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500' : 'bg-gray-800 text-gray-400 border border-gray-700'
-          }`}
-        >
-          {isReadingMusicPlaying ? <Pause size={14} className="animate-pulse" /> : <Play size={14} />}
-          <span className="hidden sm:inline">NEURAL FLOW</span>
-        </button>
+        <div className="flex items-center gap-2">
+            {/* Text Size Controls */}
+            {selectedChapterId !== null && (
+                <div className="flex items-center gap-1 bg-gray-800 rounded-xl p-1 border border-gray-700 mr-2">
+                    <button onClick={() => adjustTextSize(-2)} className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"><Type size={12} /></button>
+                    <button onClick={() => adjustTextSize(2)} className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"><Type size={16} /></button>
+                </div>
+            )}
+
+            <button 
+            onClick={() => { playCosmicClick(); setReadingMusic(!isReadingMusicPlaying); }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-tech tracking-widest transition-all ${
+                isReadingMusicPlaying ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500' : 'bg-gray-800 text-gray-400 border border-gray-700'
+            }`}
+            >
+            {isReadingMusicPlaying ? <Pause size={14} className="animate-pulse" /> : <Play size={14} />}
+            <span className="hidden sm:inline">NEURAL FLOW</span>
+            </button>
+        </div>
       </div>
 
       {/* 2. CHAPTER LIST */}
@@ -89,7 +136,7 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
           ) : (
             searchResults.map((chapter) => {
               const actuallyLocked = chapter.isLocked && !isPremium;
-              const contentPreview = FULL_MANUSCRIPT[chapter.id]?.substring(0, 100) + "...";
+              const contentPreview = FULL_MANUSCRIPT[chapter.id]?.substring(0, 150) + "...";
               
               return (
                 <div 
@@ -98,7 +145,7 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
                      playDataOpen();
                      setSelectedChapterId(chapter.id);
                   }}
-                  className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group min-h-[180px] flex flex-col justify-between bg-gradient-to-br from-gray-900 to-black border-white/10 hover:border-cyan-500/50 hover:scale-[1.02] shadow-xl`}
+                  className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group min-h-[220px] flex flex-col justify-between bg-gradient-to-br from-gray-900 to-black border-white/10 hover:border-cyan-500/50 hover:scale-[1.02] shadow-xl`}
                 >
                   <div className="flex justify-between items-start relative z-10">
                     <span className={`font-mono text-[9px] uppercase tracking-[0.3em] ${actuallyLocked ? 'text-amber-500' : 'text-cyan-500'}`}>
@@ -107,19 +154,19 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
                     {!isPremium && <Lock size={12} className="text-gray-600 group-hover:text-amber-500 transition-colors" />}
                   </div>
 
-                  <div className="relative z-10 mt-4">
+                  <div className="relative z-10 mt-4 flex-1">
                     <h3 className="text-sm font-tech uppercase tracking-wider mb-1.5 text-white">
                       {chapter.title}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-sacred uppercase italic tracking-widest mb-3">{chapter.subtitle}</p>
                     
                     {/* Deep Search Snippet */}
-                    <p className="text-[9px] text-gray-600 font-reading line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="text-[9px] text-gray-500 font-reading leading-relaxed line-clamp-3 group-hover:text-gray-300 transition-colors">
                         {contentPreview}
-                    </p>
+                    </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between relative z-10">
+                  <div className="mt-4 flex items-center justify-between relative z-10 border-t border-white/5 pt-3">
                     <div className="text-[8px] font-mono text-cyan-400/40 uppercase tracking-[0.3em]">
                         {isPremium ? "DECRYPTED" : "ENCRYPTED"}
                     </div>
@@ -175,7 +222,7 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
           </div>
           
           <div 
-            className="flex-1 bg-gray-900/40 border border-white/5 rounded-[1.5rem] p-8 md:p-16 lg:p-24 overflow-y-auto custom-scrollbar relative protected-content shadow-2xl"
+            className="flex-1 bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] p-6 md:p-12 lg:p-20 overflow-y-auto custom-scrollbar relative protected-content shadow-2xl"
             onContextMenu={handleSecurityBreach}
             onCopy={handleSecurityBreach}
             onCut={handleSecurityBreach}
@@ -194,8 +241,8 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
                   <div className="w-32 h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent mx-auto mt-8"></div>
               </div>
               
-              <div className="prose prose-invert prose-lg md:prose-xl font-reading leading-relaxed text-gray-300 whitespace-pre-wrap selection:bg-cyan-500/30">
-                {getContent(selectedChapterId || 1)}
+              <div className="prose prose-invert prose-lg max-w-none">
+                {renderContent(getContent(selectedChapterId || 1))}
               </div>
 
               {!isPremium && (
