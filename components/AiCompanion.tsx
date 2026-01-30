@@ -164,7 +164,8 @@ export const AiCompanion: React.FC<AiCompanionProps> = ({ path, isPremium, user,
                 {/* Fix: use conditional size prop instead of unsupported md:size */}
                 <button onClick={() => handleSend()} className="p-1.5 md:p-2 bg-white text-black rounded-lg md:rounded-xl hover:bg-cyan-400 transition-colors"><ChevronRight size={isMobile ? 14 : 16} /></button>
             </div>
-            {!isPremium && <button onClick={onUpgrade} className="absolute inset-0 bg-black/60 backdrop-blur-[2px] rounded-xl md:rounded-2xl flex items-center justify-center text-[8px] md:text-[9px] font-bold text-cyan-400 uppercase tracking-widest gap-2"><Lock size={10} md:size={12}/> Root Access Required</button>}
+            {/* Fix: Use conditional size for Lock icon to support responsive layout without unsupported props */}
+            {!isPremium && <button onClick={onUpgrade} className="absolute inset-0 bg-black/60 backdrop-blur-[2px] rounded-xl md:rounded-2xl flex items-center justify-center text-[8px] md:text-[9px] font-bold text-cyan-400 uppercase tracking-widest gap-2"><Lock size={isMobile ? 10 : 12}/> Root Access Required</button>}
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserPath, UserProfile, UserRecord } from './types';
 import { Dashboard } from './components/Dashboard';
@@ -181,6 +182,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleLoginSuccess = (email: string) => {
+    // FIX: Included neuralCredits in the UserProfile initialization.
     const profile: UserProfile = {
         name: email.split('@')[0],
         email: email,
@@ -191,8 +193,8 @@ const AppContent: React.FC = () => {
         atp: 85,
         proteins: 420,
         voltage: 15,
-        // Added balance property to fulfill UserProfile interface
-        balance: 50
+        balance: 50,
+        neuralCredits: 0
     };
 
     const db = getUserDB();
@@ -354,6 +356,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleAuthorLogin = () => {
+    // FIX: Included neuralCredits in the author profile initialization.
     const authorProfile: UserProfile = {
         name: 'The Phoenix',
         email: 'architect@source.code',
@@ -366,8 +369,8 @@ const AppContent: React.FC = () => {
         voltage: 24,
         archetype: 'ACTIVE_NODE',
         startingSkill: 'PHOENIX OVERRIDE',
-        // Added balance property to fulfill UserProfile interface
-        balance: 100
+        balance: 100,
+        neuralCredits: 99999
     };
     
     setIsAuthor(true);

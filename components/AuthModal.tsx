@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Globe, Mail, Loader2, ShieldCheck, ArrowRight, ChevronLeft, Fingerprint, Lock } from 'lucide-react';
 import { playCosmicClick, playNeuralLink, playDataOpen, playError } from '../utils/sfx';
@@ -53,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
                 clearInterval(interval);
                 // Finalize Login
                 setTimeout(() => {
-                    // Added level, xp, atp, proteins, voltage, and balance properties required by UserProfile interface.
+                    // FIX: Included neuralCredits in the mock profile initialization.
                     const mockProfile: UserProfile = {
                         name: oauthProvider === 'google' ? 'Google User' : 'Apple User',
                         email: oauthProvider === 'google' ? 'user@gmail.com' : 'user@icloud.com',
@@ -64,7 +65,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
                         atp: 85,
                         proteins: 420,
                         voltage: 15,
-                        balance: 50
+                        balance: 50,
+                        neuralCredits: 0
                     };
                     onLogin(mockProfile);
                 }, 800);
@@ -87,7 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
         playNeuralLink();
         setLoading('email');
         setTimeout(() => {
-            // Added level, xp, atp, proteins, voltage, and balance for the author profile.
+            // FIX: Included neuralCredits in the author profile login.
             onLogin({ 
               name: 'The Phoenix', 
               email: 'phoenix', 
@@ -97,7 +99,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
               atp: 100,
               proteins: 1000,
               voltage: 24,
-              balance: 100
+              balance: 100,
+              neuralCredits: 99999
             });
         }, 1000);
         return;
@@ -112,7 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
     setLoading('email');
     
     setTimeout(() => {
-        // Added level, xp, atp, proteins, voltage, and balance properties required by UserProfile interface.
+        // FIX: Included neuralCredits in the regular email login mock profile.
         const mockProfile: UserProfile = {
             name: email.split('@')[0],
             email: email,
@@ -122,7 +125,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
             atp: 85,
             proteins: 420,
             voltage: 15,
-            balance: 50
+            balance: 50,
+            neuralCredits: 0
         };
         onLogin(mockProfile);
     }, 2000);

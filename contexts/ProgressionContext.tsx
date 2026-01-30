@@ -12,6 +12,8 @@ interface ProgressionContextType {
   reduceEntropy: (amount: number) => void;
   balance: number; // 0 (Entropy) to 100 (Syntropy)
   adjustBalance: (amount: number) => void;
+  credits: number;
+  addCredits: (amount: number) => void;
 }
 
 const ProgressionContext = createContext<ProgressionContextType | undefined>(undefined);
@@ -23,14 +25,16 @@ export const ProgressionProvider: React.FC<{ children: React.ReactNode, user?: U
   const [xp, setXp] = useState(user?.xp || 0);
   const [entropy, setEntropy] = useState(15);
   const [balance, setBalance] = useState(user?.balance ?? 50);
+  const [credits, setCredits] = useState(user?.neuralCredits ?? 0);
 
   useEffect(() => {
     if (user) {
         setLevel(user.level || 1);
         setXp(user.xp || 0);
         setBalance(user.balance ?? 50);
+        setCredits(user.neuralCredits ?? 0);
     }
-  }, [user?.email, user?.balance]);
+  }, [user?.email, user?.balance, user?.neuralCredits]);
 
   const addXp = (amount: number, reason?: string) => {
       let newXp = xp + amount;
@@ -48,11 +52,16 @@ export const ProgressionProvider: React.FC<{ children: React.ReactNode, user?: U
       if (onUpdate) onUpdate({ level: newLevel, xp: newXp });
   };
 
+  const addCredits = (amount: number) => {
+      const newCredits = credits + amount;
+      setCredits(newCredits);
+      if (onUpdate) onUpdate({ neuralCredits: newCredits });
+  };
+
   const adjustBalance = (amount: number) => {
       const newBalance = Math.min(100, Math.max(0, balance + amount));
       setBalance(newBalance);
       if (onUpdate) onUpdate({ balance: newBalance });
-      // Only play subtle noise for significant shifts
       if (Math.abs(amount) > 2) playDataOpen();
   };
 
@@ -63,7 +72,7 @@ export const ProgressionProvider: React.FC<{ children: React.ReactNode, user?: U
   const xpToNextLevel = calculateXpForLevel(level);
 
   return (
-    <ProgressionContext.Provider value={{ level, xp, xpToNextLevel, addXp, entropy, reduceEntropy, balance, adjustBalance }}>
+    <ProgressionContext.Provider value={{ level, xp, xpToNextLevel, addXp, entropy, reduceEntropy, balance, adjustBalance, credits, addCredits }}>
       {children}
     </ProgressionContext.Provider>
   );
