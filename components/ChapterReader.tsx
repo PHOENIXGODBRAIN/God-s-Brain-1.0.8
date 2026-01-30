@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
+import { Lock, Search, Music, ChevronLeft, ChevronRight, Play, Pause, ShieldAlert, X, ArrowLeft, Zap } from 'lucide-react';
 import { Chapter } from '../types';
-import { Lock, Zap, ChevronRight, X, ArrowLeft, Maximize2, ShieldAlert } from 'lucide-react';
-import { playCosmicClick, playNeuralLink, playDataOpen, playError } from '../utils/sfx';
+import { FULL_MANUSCRIPT, SUMMARIES } from '../data/manuscript';
+import { playMenuSelect, playDataOpen, playCosmicClick, playError, playNeuralLink } from '../utils/sfx';
 
 interface ChapterReaderProps {
   chapters: Chapter[];
@@ -11,22 +12,25 @@ interface ChapterReaderProps {
 }
 
 export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremium, onUpgrade }) => {
-  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isReadingMusicPlaying, setReadingMusic] = useState(false);
   const [securityWarning, setSecurityWarning] = useState(false);
 
-  const handleChapterClick = (chapter: Chapter) => {
-    if (chapter.isLocked && !isPremium) {
-      playNeuralLink();
-      onUpgrade();
-      return;
+  // Map ID to Manuscript Content or Summary
+  const getContent = (id: number) => {
+    const keys = Object.keys(FULL_MANUSCRIPT);
+    const contentArray = Object.values(FULL_MANUSCRIPT);
+    const summaryArray = Object.values(SUMMARIES);
+    
+    if (isPremium) {
+        return contentArray[id - 1] || "Data currently being retrieved from the Akashic Cloud...";
+    } else {
+        // Show summary + teaser (first few words)
+        const full = contentArray[id - 1] || "";
+        const teaser = full.split('\n').filter(l => l.length > 20)[0]?.substring(0, 150) || "";
+        return `[SUMMARY]: ${summaryArray[id - 1]}\n\n[PREVIEW]: ${teaser}... [SYNC REQUIRED FOR FULL ACCESS]`;
     }
-    playDataOpen(); // Digital chirp for accessing data
-    setSelectedChapter(chapter);
-  };
-
-  const handleClose = () => {
-    playCosmicClick();
-    setSelectedChapter(null);
   };
 
   const handleSecurityBreach = (e: React.SyntheticEvent) => {
@@ -36,104 +40,155 @@ export const ChapterReader: React.FC<ChapterReaderProps> = ({ chapters, isPremiu
     setTimeout(() => setSecurityWarning(false), 2000);
   };
 
+  const filteredChapters = chapters.filter(c => 
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* HEADER */}
-      <div className="text-center mb-10">
-        <h2 className="font-tech text-3xl text-white mb-2 uppercase tracking-widest">Neural Archive</h2>
-        <div className="w-24 h-[1px] bg-[#00FFFF] mx-auto opacity-30"></div>
+    <div className="flex flex-col h-full text-white animate-fadeIn">
+      
+      {/* 1. READER TOOLBAR */}
+      <div className="flex items-center gap-4 mb-8 bg-black/40 p-4 rounded-2xl border border-white/10 backdrop-blur-xl">
+        <div className="flex-1 flex items-center bg-gray-900/80 px-4 py-2.5 rounded-xl border border-gray-700 focus-within:border-cyan-500 transition-all">
+          <Search size={16} className="text-gray-500 mr-3" />
+          <input 
+            type="text" 
+            placeholder="Search Database..." 
+            className="bg-transparent border-none focus:outline-none text-xs w-full text-white placeholder-gray-600 font-mono"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <button 
+          onClick={() => { playCosmicClick(); setReadingMusic(!isReadingMusicPlaying); }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-tech tracking-widest transition-all ${
+            isReadingMusicPlaying ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500' : 'bg-gray-800 text-gray-400 border border-gray-700'
+          }`}
+        >
+          {isReadingMusicPlaying ? <Pause size={14} className="animate-pulse" /> : <Play size={14} />}
+          <span className="hidden sm:inline">NEURAL FLOW</span>
+        </button>
       </div>
 
-      {/* CHAPTER GRID */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {chapters.map((chapter) => {
-          const locked = chapter.isLocked && !isPremium;
-
-          return (
-            <div 
-              key={chapter.id} 
-              onClick={() => handleChapterClick(chapter)}
-              className={`relative border border-white/10 rounded-2xl overflow-hidden transition-all duration-300 group cursor-pointer ${
-                locked ? 'opacity-60' : 'bg-black/40 hover:border-[#00FFFF] hover:scale-[1.02] shadow-xl'
-              }`}
-            >
-              <div className={`p-6 flex flex-col justify-between min-h-[200px] ${locked ? 'bg-gray-900/40' : 'bg-gradient-to-br from-[#00FFFF]/5 to-transparent'}`}>
-                <div className="flex justify-between items-start mb-4">
-                  <span className={`font-mono text-[9px] uppercase tracking-widest ${locked ? 'text-gray-600' : 'text-[#00FFFF]'}`}>
-                    NODE_{chapter.id.toString().padStart(3, '0')}
+      {/* 2. CHAPTER LIST */}
+      {selectedChapterId === null ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 overflow-y-auto custom-scrollbar pr-2">
+          {filteredChapters.map((chapter) => {
+            // Standard users can see the selection, but might be met with summaries
+            const actuallyLocked = chapter.isLocked && !isPremium;
+            return (
+              <div 
+                key={chapter.id}
+                onClick={() => {
+                   playDataOpen();
+                   setSelectedChapterId(chapter.id);
+                }}
+                className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group min-h-[160px] flex flex-col justify-between bg-gradient-to-br from-gray-900 to-black border-white/10 hover:border-cyan-500/50 hover:scale-[1.02] shadow-xl`}
+              >
+                <div className="flex justify-between items-start relative z-10">
+                  <span className={`font-mono text-[9px] uppercase tracking-[0.3em] ${actuallyLocked ? 'text-amber-500' : 'text-cyan-500'}`}>
+                    {actuallyLocked ? 'RESTRICTED_NODE' : `LINK_NODE_${chapter.id.toString().padStart(3, '0')}`}
                   </span>
-                  {locked && <Lock className="text-[#FF4500] w-3 h-3" />}
+                  {!isPremium && <Lock size={12} className="text-gray-600 group-hover:text-amber-500 transition-colors" />}
                 </div>
 
-                <div>
-                  <h3 className={`font-tech text-sm uppercase leading-tight mb-1 ${locked ? 'text-gray-500' : 'text-white'}`}>
+                <div className="relative z-10 mt-4">
+                  <h3 className="text-sm font-tech uppercase tracking-wider mb-1.5 text-white">
                     {chapter.title}
                   </h3>
-                  <p className="font-sacred text-[9px] text-white/30 italic uppercase">{chapter.subtitle}</p>
+                  <p className="text-[10px] text-gray-500 font-sacred uppercase italic tracking-widest">{chapter.subtitle}</p>
                 </div>
 
-                <div className="mt-6 text-[8px] font-tech text-[#00FFFF] opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest">
-                    {locked ? 'ENCRYPTED' : 'Download Data >>'}
+                <div className="mt-4 text-[8px] font-mono text-cyan-400/40 uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isPremium ? "Accessing Core..." : "Extracting Summary..."}
                 </div>
+                
+                <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full group-hover:bg-cyan-500/10 transition-all"></div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* MODAL READER */}
-      {selectedChapter && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
-          <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={handleClose}></div>
-          
-          <div className="relative w-full max-w-3xl max-h-[85vh] bg-black border border-[#00FFFF]/30 shadow-[0_0_50px_rgba(0,255,255,0.1)] rounded-3xl flex flex-col overflow-hidden">
-            
-            {/* Security Warning Overlay */}
-            {securityWarning && (
-                <div className="absolute inset-0 z-50 bg-red-900/90 flex flex-col items-center justify-center text-center p-8 animate-pulse">
-                    <ShieldAlert className="w-16 h-16 text-white mb-4" />
-                    <h2 className="text-2xl font-tech text-white uppercase tracking-widest mb-2">Security Protocol Engaged</h2>
-                    <p className="text-white font-mono text-xs">Copying of Neural Archive data is strictly prohibited.</p>
+            );
+          })}
+        </div>
+      ) : (
+        // 3. READING MODE
+        <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-10 pb-20">
+          {securityWarning && (
+                <div className="fixed inset-0 z-[200] bg-red-900/90 flex flex-col items-center justify-center text-center p-8 animate-pulse backdrop-blur-md">
+                    <ShieldAlert className="w-20 h-20 text-white mb-6" />
+                    <h2 className="text-3xl font-tech text-white uppercase tracking-[0.3em] mb-4">Security Protocol Engaged</h2>
+                    <p className="text-white font-mono text-sm max-w-md leading-relaxed">Direct duplication of the Universal Source Code is prohibited by the Phoenix Firewall.</p>
                 </div>
-            )}
+          )}
 
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button onClick={handleClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-[#00FFFF]">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="font-tech text-xs text-white uppercase tracking-widest">Archive Link: Node_{selectedChapter.id}</div>
-              </div>
-              <button onClick={handleClose} className="text-gray-500 hover:text-white"><X /></button>
-            </div>
-
-            <div 
-                className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar protected-content"
-                onContextMenu={handleSecurityBreach}
-                onCopy={handleSecurityBreach}
-                onCut={handleSecurityBreach}
+          <div className="flex items-center justify-between mb-6">
+            <button 
+                onClick={() => { playCosmicClick(); setSelectedChapterId(null); }}
+                className="flex items-center gap-2 text-[10px] font-tech text-gray-500 hover:text-white transition-colors uppercase tracking-[0.2em] group"
             >
-              <div className="max-w-2xl mx-auto space-y-8">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl md:text-5xl font-tech text-white uppercase tracking-tighter">{selectedChapter.title}</h1>
-                    <h2 className="text-lg font-reading text-[#FF4500] italic font-medium">{selectedChapter.subtitle}</h2>
-                </div>
-
-                {/* Protected Text Content */}
-                <div className="font-reading text-lg md:text-xl text-gray-300 leading-loose space-y-6 first-letter:text-4xl first-letter:text-[#00FFFF] first-letter:mr-1 first-letter:font-bold">
-                    {selectedChapter.content.split('\n').map((para, i) => (
-                        <p key={i}>{para}</p>
-                    ))}
-                </div>
-              </div>
+                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> BACK TO ARCHIVE
+            </button>
+            <div className="flex gap-2">
+                <button 
+                    onClick={() => setSelectedChapterId(prev => Math.max(1, (prev || 1) - 1))}
+                    disabled={selectedChapterId === 1}
+                    className="p-2 bg-white/5 border border-white/10 rounded-full text-gray-500 hover:text-white disabled:opacity-20"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                <button 
+                    onClick={() => {
+                        const nextId = (selectedChapterId || 1) + 1;
+                        if (nextId <= chapters.length) {
+                            playDataOpen();
+                            setSelectedChapterId(nextId);
+                        }
+                    }}
+                    disabled={selectedChapterId === chapters.length}
+                    className="p-2 bg-white/5 border border-white/10 rounded-full text-gray-500 hover:text-white disabled:opacity-20"
+                >
+                    <ChevronRight size={16} />
+                </button>
             </div>
+          </div>
+          
+          <div 
+            className="flex-1 bg-gray-900/40 border border-white/5 rounded-[2.5rem] p-8 md:p-16 overflow-y-auto custom-scrollbar relative protected-content shadow-2xl"
+            onContextMenu={handleSecurityBreach}
+            onCopy={handleSecurityBreach}
+            onCut={handleSecurityBreach}
+          >
+            <div className="max-w-3xl mx-auto">
+              <div className="text-center mb-16">
+                  <span className="text-[10px] font-mono text-cyan-500/60 uppercase tracking-[0.5em] mb-4 block">
+                    {isPremium ? "Uplink Stable // Unabridged Data" : "Restricted Link // Abstract Preview"}
+                  </span>
+                  <h2 className="text-3xl md:text-5xl font-tech text-white mb-4 tracking-tighter leading-none uppercase text-shadow-glow">
+                    {chapters.find(c => c.id === selectedChapterId)?.title}
+                  </h2>
+                  <h3 className="text-sm md:text-lg font-sacred text-amber-500 italic uppercase tracking-[0.2em]">
+                    {chapters.find(c => c.id === selectedChapterId)?.subtitle}
+                  </h3>
+                  <div className="w-32 h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent mx-auto mt-8"></div>
+              </div>
+              
+              <div className="prose prose-invert prose-lg font-reading leading-relaxed text-gray-300 whitespace-pre-wrap selection:bg-cyan-500/30">
+                {getContent(selectedChapterId || 1)}
+              </div>
 
-            <div className="p-3 border-t border-white/5 bg-black text-[8px] font-mono text-gray-600 flex justify-between px-6">
-                <span>GOD_BRAIN_V7.0</span>
-                <span className="text-[#00FFFF]/30 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <ShieldAlert className="w-3 h-3" />
-                    DRM-SECURE
-                </span>
+              {!isPremium && (
+                  <div className="mt-20 pt-10 border-t border-white/10 flex flex-col items-center">
+                     <Lock className="w-12 h-12 text-amber-500 mb-6 animate-pulse" />
+                     <h4 className="text-xl font-tech text-white uppercase tracking-widest mb-2">Protocol Sync Required</h4>
+                     <p className="text-gray-400 text-sm text-center mb-8 max-w-sm">The full manuscript is currently encrypted. Complete game objectives or initialize root access to decrypt this node.</p>
+                     <button 
+                       onClick={() => { playNeuralLink(); onUpgrade(); }}
+                       className="px-12 py-4 bg-amber-500 text-black hover:bg-white hover:scale-105 transition-all rounded-full font-tech text-xs tracking-[0.3em] uppercase shadow-2xl flex items-center gap-3"
+                     >
+                       Unlock Full Archive ($9.99) <Zap size={14} className="fill-current" />
+                     </button>
+                  </div>
+              )}
             </div>
           </div>
         </div>

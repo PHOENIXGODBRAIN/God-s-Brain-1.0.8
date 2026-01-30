@@ -30,6 +30,7 @@ export interface UserState {
   atp: number;
   proteins: number;
   voltage: number;
+  balance: number; // 0 to 100, 50 is neutral
 }
 
 export interface UserProfile {
@@ -44,6 +45,7 @@ export interface UserProfile {
   atp: number;
   proteins: number;
   voltage: number;
+  balance: number; // 0 (Entropy) to 100 (Syntropy)
 }
 
 export interface Chapter {
@@ -56,7 +58,6 @@ export interface Chapter {
   imgUrl?: string;
 }
 
-// Simulated Database Record
 export interface UserRecord {
   profile: UserProfile;
   queriesUsed: number;

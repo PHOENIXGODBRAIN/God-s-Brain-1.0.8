@@ -138,6 +138,25 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       setNucleusColor(theme.color);
   }, [archetype, theme.color]);
 
+  // --- INTERACTIVE ROTATION HANDLERS ---
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+      isDraggingRef.current = true;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      lastMouseXRef.current = clientX;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isDraggingRef.current) return;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const deltaX = clientX - lastMouseXRef.current;
+      rotationRef.current += deltaX * 0.5; // Drag sensitivity
+      lastMouseXRef.current = clientX;
+  };
+
+  const handleMouseUp = () => {
+      isDraggingRef.current = false;
+  };
+
   const handleRandomName = () => {
       playCosmicClick();
       setNeuronName(`${DNA_NAMES[Math.floor(Math.random() * DNA_NAMES.length)]}-${Math.floor(Math.random() * 999)}`);
@@ -217,7 +236,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                   onUpdateProfile({ 
                       name: neuronName,
                       archetype: archetype,
-                      // Ensure skill persists
                       startingSkill: user?.startingSkill || "Network Bridging"
                   });
               }
@@ -249,8 +267,13 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
         const cy = canvas.height / 2;
         const pulse = Math.sin(time) * 0.012 + 1; 
         const heart = Math.sin(time * 3) * (pulseIntensity / 100 * 10); 
-        const activeSpooky = isUnlocked ? (spookySpeed / 100 * 0.25) : (Math.min(spookySpeed, 25) / 100 * 0.25);
-        rotationRef.current += activeSpooky; 
+        
+        // Auto-rotation pauses or slows when dragging
+        if (!isDraggingRef.current) {
+            const activeSpooky = isUnlocked ? (spookySpeed / 100 * 0.25) : (Math.min(spookySpeed, 25) / 100 * 0.25);
+            rotationRef.current += activeSpooky; 
+        }
+
         ctx.save();
         ctx.translate(cx, cy);
         const scaleFactor = (Math.min(canvas.width, canvas.height) / 450) * zoom; 
@@ -356,7 +379,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
             </div>
             <div className="relative w-full h-5 flex items-center">
                 <div className="absolute left-0 w-full h-2 bg-black/60 border border-white/10 rounded-full overflow-hidden pointer-events-none">
-                    {!isUnlocked && maxCap < 100 && <div className="absolute top-0 right-0 h-full bg-red-900/30 border-l border-red-500/40" style={{ width: `${100 - maxCap}%` }} />}
+                    {!isUnlocked && maxCap < 100 && <div className="absolute top-0 right-0 h-full bg-red-900/30 border-l border-red-500/40" style={{ width: `${(1 - (maxCap / 100)) * 100}%` }} />}
                     <div className="absolute top-0 left-0 h-full opacity-60" style={{ width: `${val}%`, background: `linear-gradient(to right, transparent, ${theme.color})` }} />
                 </div>
                 <input 
@@ -468,7 +491,17 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       )}
 
       {/* LEFT: PREVIEW & NAME */}
-      <div ref={containerRef} className="h-[45%] landscape:h-full landscape:w-[55%] relative flex flex-col items-center border-r border-white/5 cursor-move group/preview overflow-hidden bg-transparent">
+      <div 
+          ref={containerRef} 
+          className="h-[45%] landscape:h-full landscape:w-[55%] relative flex flex-col items-center border-r border-white/5 cursor-grab active:cursor-grabbing group/preview overflow-hidden bg-transparent"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleMouseDown}
+          onTouchMove={handleMouseMove}
+          onTouchEnd={handleMouseUp}
+      >
           
           {/* HEADER NAVIGATION */}
           <div className="absolute top-6 left-6 z-30">
@@ -522,13 +555,13 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
           {/* ZOOM CONTROLS */}
           <div className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-48 md:gap-64 z-30 pointer-events-none">
               <button 
-                onClick={() => setZoom(z => Math.max(0.5, z-0.1))} 
+                onClick={(e) => { e.stopPropagation(); setZoom(z => Math.max(0.5, z-0.1)); }} 
                 className="p-4 bg-black/30 backdrop-blur-sm rounded-2xl text-white hover:bg-black/60 border border-white/10 pointer-events-auto transition-all hover:scale-110 active:scale-90 shadow-xl"
               >
                   <Minus className="w-5 h-5"/>
               </button>
               <button 
-                onClick={() => setZoom(z => Math.min(2.5, z+0.1))} 
+                onClick={(e) => { e.stopPropagation(); setZoom(z => Math.min(2.5, z+0.1)); }} 
                 className="p-4 bg-black/30 backdrop-blur-sm rounded-2xl text-white hover:bg-black/60 border border-white/10 pointer-events-auto transition-all hover:scale-110 active:scale-90 shadow-xl"
               >
                   <Plus className="w-5 h-5"/>
@@ -601,7 +634,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
               )}
               {activeTab === 'MUTATION' && (
                   <div className="space-y-12 animate-fadeIn">
-                      <Slide label="Flow State" icon={<Waves className="w-4 h-4"/>} val={waviness} setter={setWaviness} displayMin={0.01} displayMax={0.012} maxCap={5} />
+                      <Slide label="Flow State" icon={<Waves className="w-4 h-4"/>} val={waviness} setter={setWaviness} displayMin={0.02} displayMax={0.12} maxCap={5} />
                       <Slide label="Spiny Protrusions" icon={<Triangle className="w-4 h-4"/>} val={spikeFactor} setter={setSpikeFactor} displayMin={0.00} displayMax={1.00} locked={true} />
                       <Slide label="Protrusion Angle" icon={<Compass className="w-4 h-4"/>} val={spikeAngle} setter={setSpikeAngle} displayMin={0} displayMax={180} locked={true} />
                   </div>

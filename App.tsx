@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserPath, UserProfile, UserRecord } from './types';
 import { Dashboard } from './components/Dashboard';
@@ -17,7 +16,7 @@ import { NeuronBuilder } from './components/Onboarding/NeuronBuilder';
 import { TransitionScreen } from './components/TransitionScreen';
 import { WarpScreen } from './components/WarpScreen';
 import { playError, playNeuralLink, playCosmicClick, playDataOpen } from './utils/sfx';
-import { X, Flame, ShieldAlert, Key } from 'lucide-react';
+import { X, Flame, ShieldAlert, Key, Hash, ChevronRight, Eraser } from 'lucide-react';
 
 type OnboardingStep = 'PORTAL' | 'SHOWCASE' | 'INIT' | 'REVEAL' | 'SKILL_INIT' | 'SYNTHESIS' | 'WARP' | 'BUILDER' | 'COMPLETE';
 
@@ -53,12 +52,12 @@ const AppContent: React.FC = () => {
 
   // Admin Override Modal State
   const [showPhoenixModal, setShowPhoenixModal] = useState(false);
-  const [adminCode, setAdminCode] = useState('');
+  const [punchCode, setPunchCode] = useState<string[]>([]);
+  const CORRECT_CODE = "1742";
 
   // --- ROOT ACCESS OVERRIDE ---
   const effectiveIsPremium = isPremium || isAuthor;
 
-  // --- ANTI-ABUSE DATABASE LOGIC ---
   const getUserDB = (): Record<string, UserRecord> => {
     try {
       const db = localStorage.getItem('gb_user_database');
@@ -72,17 +71,15 @@ const AppContent: React.FC = () => {
     localStorage.setItem('gb_user_database', JSON.stringify(db));
   };
 
-  // --- DYNAMIC UI COLOR SYNC ---
   useEffect(() => {
     if (userProfile?.archetype) {
         const color = ARCHETYPE_COLORS[userProfile.archetype] || '#00FFFF';
         const root = document.documentElement;
         root.style.setProperty('--path-color', color);
-        root.style.setProperty('--path-glow', color + '4D'); // 30% alpha for glow
+        root.style.setProperty('--path-glow', color + '4D');
     }
   }, [userProfile?.archetype]);
 
-  // --- INITIALIZATION ---
   useEffect(() => {
     const savedPath = localStorage.getItem('gb_path') as UserPath;
     const savedAuthToken = localStorage.getItem('gb_auth_token');
@@ -122,25 +119,32 @@ const AppContent: React.FC = () => {
     setIsLoaded(true);
   }, []);
 
-  const handleAdminAuth = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (adminCode === '1742') {
+  const handleKeyClick = (num: number) => {
+    playCosmicClick();
+    if (punchCode.length < 4) {
+      const newCode = [...punchCode, num.toString()];
+      setPunchCode(newCode);
+      if (newCode.length === 4) {
+        if (newCode.join('') === CORRECT_CODE) {
           playNeuralLink();
           handleAuthorLogin();
           setShowPhoenixModal(false);
-          setAdminCode('');
-      } else {
+          setPunchCode([]);
+        } else {
           playError();
-          setAdminCode('');
+          setTimeout(() => setPunchCode([]), 500);
+        }
       }
+    }
   };
 
   const handlePhoenixTrigger = () => {
-      playCosmicClick();
-      setShowPhoenixModal(true);
+    if (isAuthor) return;
+    playDataOpen();
+    setShowPhoenixModal(true);
+    setPunchCode([]);
   };
 
-  // --- TRANSITION ENGINE ---
   const triggerTransition = (targetStep: OnboardingStep, title?: string, steps?: string[]) => {
       setNextStep(targetStep);
       setTransitionTitle(title || "SYSTEM PROCESSING");
@@ -186,7 +190,9 @@ const AppContent: React.FC = () => {
         xp: 0,
         atp: 85,
         proteins: 420,
-        voltage: 15
+        voltage: 15,
+        // Added balance property to fulfill UserProfile interface
+        balance: 50
     };
 
     const db = getUserDB();
@@ -359,7 +365,9 @@ const AppContent: React.FC = () => {
         proteins: 1000,
         voltage: 24,
         archetype: 'ACTIVE_NODE',
-        startingSkill: 'PHOENIX OVERRIDE'
+        startingSkill: 'PHOENIX OVERRIDE',
+        // Added balance property to fulfill UserProfile interface
+        balance: 100
     };
     
     setIsAuthor(true);
@@ -425,43 +433,61 @@ const AppContent: React.FC = () => {
               <WarpScreen color={warpColor} onComplete={handleWarpComplete} />
           )}
 
+          {/* PHOENIX OVERRIDE "SQUARE MENU" PUNCH CODE */}
           {showPhoenixModal && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
-                  <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowPhoenixModal(false)}></div>
-                  <div className="relative w-full max-w-sm bg-black border border-amber-500/50 rounded-[2rem] p-10 shadow-[0_0_80px_rgba(255,191,0,0.2)] overflow-hidden">
+                  <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setShowPhoenixModal(false)}></div>
+                  <div className="relative w-full max-w-sm bg-black border border-amber-500/50 rounded-[2rem] p-10 shadow-[0_0_80px_rgba(255,191,0,0.4)] overflow-hidden">
                       <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_20px_#FFBF00]"></div>
-                      <div className="text-center mb-10">
-                          <div className="w-16 h-16 bg-amber-500/10 rounded-full border border-amber-500/30 flex items-center justify-center mx-auto mb-6">
-                              <Flame className="text-amber-500 w-8 h-8 animate-pulse" />
+                      <div className="text-center mb-8">
+                          <div className="w-16 h-16 bg-amber-500/10 rounded-full border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+                              <Flame className="text-amber-500 w-8 h-8" />
                           </div>
-                          <h2 className="text-2xl font-tech text-white uppercase tracking-widest leading-none">Phoenix Protocol</h2>
-                          <p className="text-[10px] text-amber-500/60 uppercase font-mono tracking-widest mt-3">Author Override Sequence Required</p>
+                          <h2 className="text-2xl font-tech text-white uppercase tracking-widest leading-none">Phoenix Override</h2>
+                          <p className="text-[10px] text-amber-500/60 uppercase font-mono tracking-widest mt-2">Punch in Authorization Code</p>
                       </div>
-                      <form onSubmit={handleAdminAuth} className="space-y-6">
-                          <div className="relative">
-                              <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/50" />
-                              <input 
-                                type="password" 
-                                value={adminCode}
-                                onChange={(e) => setAdminCode(e.target.value)}
-                                placeholder="PUNCH CODE..."
-                                className="w-full bg-amber-500/5 border border-amber-500/20 rounded-xl py-4 pl-12 pr-4 text-center font-tech text-white text-xl tracking-[0.5em] focus:outline-none focus:border-amber-500 focus:bg-amber-500/10 transition-all"
-                                autoFocus
-                              />
-                          </div>
+
+                      {/* Display current punch code dots */}
+                      <div className="flex justify-center gap-4 mb-8">
+                          {[0, 1, 2, 3].map(i => (
+                              <div key={i} className={`w-3 h-3 rounded-full border border-amber-500/30 transition-all ${punchCode.length > i ? 'bg-amber-500 shadow-[0_0_10px_#FFBF00]' : 'bg-transparent'}`}></div>
+                          ))}
+                      </div>
+
+                      {/* Numeric Grid */}
+                      <div className="grid grid-cols-3 gap-3">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                              <button 
+                                key={num}
+                                onClick={() => handleKeyClick(num)}
+                                className="h-16 bg-amber-500/5 border border-amber-500/20 rounded-xl font-tech text-xl text-white hover:bg-amber-500/20 hover:border-amber-500/50 transition-all active:scale-95 flex items-center justify-center shadow-inner"
+                              >
+                                  {num}
+                              </button>
+                          ))}
                           <button 
-                            type="submit"
-                            className="w-full py-4 bg-amber-500 text-black font-tech text-sm uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-xl font-bold"
+                            onClick={() => setPunchCode([])}
+                            className="h-16 bg-red-900/10 border border-red-500/30 rounded-xl font-tech text-[10px] text-red-500 hover:bg-red-500/20 transition-all flex items-center justify-center"
                           >
-                              Unlock Root Access
+                              CLR
                           </button>
-                      </form>
-                      <button 
-                        onClick={() => setShowPhoenixModal(false)}
-                        className="mt-6 w-full text-center text-gray-600 hover:text-white uppercase font-mono text-[9px] tracking-[0.3em] transition-colors"
-                      >
-                          Cancel Sequence
-                      </button>
+                          <button 
+                            onClick={() => handleKeyClick(0)}
+                            className="h-16 bg-amber-500/5 border border-amber-500/20 rounded-xl font-tech text-xl text-white hover:bg-amber-500/20 hover:border-amber-500/50 transition-all active:scale-95 flex items-center justify-center shadow-inner"
+                          >
+                              0
+                          </button>
+                          <button 
+                            onClick={() => setShowPhoenixModal(false)}
+                            className="h-16 bg-gray-900/40 border border-white/10 rounded-xl font-tech text-[10px] text-gray-400 hover:bg-gray-800 transition-all flex items-center justify-center"
+                          >
+                              <X size={14} />
+                          </button>
+                      </div>
+
+                      <div className="mt-8 text-center">
+                          <p className="text-[8px] text-gray-600 font-mono uppercase tracking-[0.3em]">Administrator Session Required</p>
+                      </div>
                   </div>
               </div>
           )}
