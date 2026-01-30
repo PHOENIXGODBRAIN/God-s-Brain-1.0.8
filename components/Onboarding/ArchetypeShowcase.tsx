@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Atom, Anchor, Sparkles, Compass, Scroll, Cpu, Zap, ArrowRight, X, CheckCircle, Brain, AlertTriangle, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Atom, Anchor, Sparkles, Compass, Scroll, Cpu, Zap, ArrowRight, X, CheckCircle, Brain, AlertTriangle, Info, ChevronDown } from 'lucide-react';
 import { playNeuralLink, playCosmicClick, playDataOpen } from '../../utils/sfx';
 
 interface ArchetypeShowcaseProps {
@@ -131,6 +131,21 @@ export const ArchetypeShowcase: React.FC<ArchetypeShowcaseProps> = ({ onContinue
     const [selectedArchetype, setSelectedArchetype] = useState<string | null>(null);
     const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
     const [confirmationStage, setConfirmationStage] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (containerRef.current && containerRef.current.scrollTop > 50) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
+        const el = containerRef.current;
+        el?.addEventListener('scroll', handleScroll);
+        return () => el?.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleStart = () => {
         playNeuralLink();
@@ -238,49 +253,49 @@ export const ArchetypeShowcase: React.FC<ArchetypeShowcaseProps> = ({ onContinue
     const containerClasses = "h-full w-full overflow-y-auto custom-scrollbar flex flex-col items-center pt-8 pb-32";
 
     return (
-        <div className={containerClasses}>
+        <div className={containerClasses} ref={containerRef}>
             {/* Full-Screen Modal Overlay for Manual Selection */}
             {activeArch && (
                 <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl animate-fadeIn overflow-y-auto custom-scrollbar flex justify-center items-start">
-                    <div className={`w-full ${confirmationStage ? 'max-w-4xl' : 'max-w-lg'} px-6 pt-12 pb-40`}>
-                        <div className={`relative bg-black border ${getColorClasses(activeArch.color).border} rounded-[2.5rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,1)]`}>
+                    <div className={`w-full ${confirmationStage ? 'max-w-4xl' : 'max-w-lg'} px-4 sm:px-6 pt-12 pb-40`}>
+                        <div className={`relative bg-black border ${getColorClasses(activeArch.color).border} rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,1)]`}>
                             
-                            {/* Header Sync with Improved Letter Spacing */}
-                            <div className="p-8 md:p-10 border-b border-white/5 bg-white/5 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
-                                <div className="flex items-center gap-6 min-w-0">
-                                    <div className={`p-4 rounded-2xl ${getColorClasses(activeArch.color).lightBg} shadow-inner shrink-0`}>
+                            {/* Header Sync */}
+                            <div className="p-6 sm:p-10 border-b border-white/5 bg-white/5 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
+                                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+                                    <div className={`p-3 sm:p-4 rounded-2xl ${getColorClasses(activeArch.color).lightBg} shadow-inner shrink-0`}>
                                         {activeArch.icon}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className="text-[10px] text-gray-500 tracking-[0.5em] uppercase mb-2 font-mono">
+                                        <div className="text-[9px] sm:text-[10px] text-gray-500 tracking-[0.3em] sm:tracking-[0.5em] uppercase mb-1 sm:mb-2 font-mono">
                                             {confirmationStage ? "Dossier Integrity Verified" : "Manual Override Protocol"}
                                         </div>
                                         {confirmationStage ? (
-                                            <h1 className="text-xl md:text-3xl font-tech text-white uppercase tracking-[0.12em] leading-tight break-words">
-                                                {activeArch.title} <span className="opacity-20 mx-2">/</span> <span className={getColorClasses(activeArch.color).text}>{selectedSkill}</span>
+                                            <h1 className="text-lg sm:text-xl md:text-3xl font-tech text-white uppercase tracking-[0.1em] sm:tracking-[0.12em] leading-tight break-words">
+                                                {activeArch.title} <span className="opacity-20 mx-1 sm:mx-2">/</span> <span className={getColorClasses(activeArch.color).text}>{selectedSkill}</span>
                                             </h1>
                                         ) : (
-                                            <h3 className="font-tech text-white text-xl uppercase tracking-[0.12em] leading-none">{activeArch.title}</h3>
+                                            <h3 className="font-tech text-white text-base sm:text-xl uppercase tracking-[0.12em] leading-none">{activeArch.title}</h3>
                                         )}
                                     </div>
                                 </div>
-                                <button onClick={closeModal} className="text-gray-500 hover:text-white p-2 hover:bg-white/5 rounded-full transition-colors shrink-0 ml-4"><X className="w-6 h-6"/></button>
+                                <button onClick={closeModal} className="text-gray-500 hover:text-white p-2 hover:bg-white/5 rounded-full transition-colors shrink-0 ml-2"><X className="w-5 h-5 sm:w-6 sm:h-6"/></button>
                             </div>
 
-                            <div className="p-8 md:p-12 space-y-12">
+                            <div className="p-6 sm:p-12 space-y-8 sm:space-y-12">
                                 {confirmationStage ? (
-                                    <div className="animate-scaleIn space-y-12">
-                                        {/* Row 1: Core Driver - Balanced Grid */}
-                                        <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                                    <div className="animate-scaleIn space-y-10 sm:space-y-12">
+                                        {/* Row 1: Core Driver */}
+                                        <section className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-8 items-start">
                                             <div className="md:col-span-4 shrink-0">
-                                                <div className="flex items-center gap-2 mb-3">
+                                                <div className="flex items-center gap-2 mb-2 sm:mb-3">
                                                     <Info className={`w-4 h-4 ${getColorClasses(activeArch.color).text}`} />
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] font-mono">Core Driver</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] font-mono">Core Driver</span>
                                                 </div>
-                                                <div className={`text-xs font-tech ${getColorClasses(activeArch.color).text} uppercase tracking-[0.12em]`}>Identity Module</div>
+                                                <div className={`text-[10px] sm:text-xs font-tech ${getColorClasses(activeArch.color).text} uppercase tracking-[0.12em]`}>Identity Module</div>
                                             </div>
                                             <div className="md:col-span-8">
-                                                <p className="text-gray-300 font-reading text-lg leading-relaxed opacity-90">
+                                                <p className="text-gray-300 font-reading text-base sm:text-lg leading-relaxed opacity-90">
                                                     {getSynergyDescription(activeArch.id, selectedSkill || 'Protocol')}
                                                 </p>
                                             </div>
@@ -288,88 +303,88 @@ export const ArchetypeShowcase: React.FC<ArchetypeShowcaseProps> = ({ onContinue
 
                                         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-                                        {/* Row 2: Functional Module - DEFINITIVE OVERLAP FIX */}
-                                        <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                                        {/* Row 2: Functional Module */}
+                                        <section className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
                                             <div className="md:col-span-5 min-w-0">
-                                                <div className="flex items-center gap-2 mb-4">
+                                                <div className="flex items-center gap-2 mb-3 sm:mb-4">
                                                     <Brain className={`w-4 h-4 ${getColorClasses(activeArch.color).text}`} />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] font-mono">Functional Module</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] font-mono">Functional Module</span>
                                                 </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="text-4xl shrink-0 p-3 bg-white/5 rounded-xl border border-white/5">
+                                                <div className="flex items-center gap-3 sm:gap-4">
+                                                    <div className="text-3xl sm:text-4xl shrink-0 p-2 sm:p-3 bg-white/5 rounded-xl border border-white/5">
                                                         {activeArch.skills.find(s => s.name === selectedSkill)?.icon || '⚡'}
                                                     </div>
-                                                    <h2 className="text-xl md:text-2xl font-tech text-white uppercase tracking-[0.12em] leading-tight break-words">
+                                                    <h2 className="text-lg sm:text-xl md:text-2xl font-tech text-white uppercase tracking-[0.12em] leading-tight break-words">
                                                         {selectedSkill}
                                                     </h2>
                                                 </div>
                                             </div>
                                             <div className="md:col-span-7 w-full">
-                                                <div className="bg-white/5 p-6 rounded-2xl border border-white/5 relative overflow-hidden group/desc h-full flex items-center">
-                                                    <div className={`absolute top-0 left-0 w-1.5 h-full ${getColorClasses(activeArch.color).bg} opacity-40`}></div>
-                                                    <p className="text-gray-400 font-reading text-sm italic opacity-90 leading-relaxed pl-4">
+                                                <div className="bg-white/5 p-4 sm:p-6 rounded-2xl border border-white/5 relative overflow-hidden group/desc h-full flex items-center">
+                                                    <div className={`absolute top-0 left-0 w-1 sm:w-1.5 h-full ${getColorClasses(activeArch.color).bg} opacity-40`}></div>
+                                                    <p className="text-gray-400 font-reading text-xs sm:text-sm italic opacity-90 leading-relaxed pl-3 sm:pl-4">
                                                         "{getSkillDesc(activeArch.id, selectedSkill || '')}"
                                                     </p>
                                                 </div>
                                             </div>
                                         </section>
 
-                                        <div className={`p-8 rounded-2xl ${getColorClasses(activeArch.color).lightBg} border ${getColorClasses(activeArch.color).border} flex gap-6 items-start shadow-inner`}>
-                                            <Zap className={`w-8 h-8 ${getColorClasses(activeArch.color).text} shrink-0 mt-1 animate-pulse`} />
+                                        <div className={`p-6 sm:p-8 rounded-2xl ${getColorClasses(activeArch.color).lightBg} border ${getColorClasses(activeArch.color).border} flex gap-4 sm:gap-6 items-start shadow-inner`}>
+                                            <Zap className={`w-6 h-6 sm:w-8 sm:h-8 ${getColorClasses(activeArch.color).text} shrink-0 mt-1 animate-pulse`} />
                                             <div>
-                                                <h4 className="text-white font-tech text-sm uppercase tracking-[0.2em] mb-3">Neural Balance: OPTIMIZED</h4>
-                                                <p className="text-xs text-gray-400 leading-relaxed font-mono uppercase tracking-tighter">Your metabolic signature has been manually calibrated. Ready for physical differentiation within the Bio-Forge matrix.</p>
+                                                <h4 className="text-white font-tech text-xs sm:text-sm uppercase tracking-[0.2em] mb-2 sm:mb-3">Neural Balance: OPTIMIZED</h4>
+                                                <p className="text-[10px] text-gray-400 leading-relaxed font-mono uppercase tracking-tighter">Your metabolic signature has been manually calibrated. Ready for physical differentiation within the Bio-Forge matrix.</p>
                                             </div>
                                         </div>
 
-                                        <div className="pt-6 space-y-6">
+                                        <div className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
                                             <button 
                                                 onClick={executeManualSync} 
-                                                className={`w-full py-8 ${getColorClasses(activeArch.color).bg} text-white font-tech text-2xl uppercase tracking-[0.4em] rounded-2xl hover:brightness-125 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center gap-6 group`}
+                                                className={`w-full py-6 sm:py-8 ${getColorClasses(activeArch.color).bg} text-white font-tech text-xl sm:text-2xl uppercase tracking-[0.3em] sm:tracking-[0.4em] rounded-2xl hover:brightness-125 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center gap-4 sm:gap-6 group`}
                                             >
-                                                <Zap className="w-8 h-8 fill-current group-hover:scale-125 transition-transform duration-300" />
+                                                <Zap className="w-6 h-6 sm:w-8 sm:h-8 fill-current group-hover:scale-125 transition-transform duration-300" />
                                                 EXECUTE IMPRINT
                                             </button>
                                             <button 
                                                 onClick={() => setConfirmationStage(false)} 
-                                                className="w-full text-center text-gray-600 hover:text-white text-[10px] font-mono uppercase tracking-[0.5em] transition-colors py-2"
+                                                className="w-full text-center text-gray-600 hover:text-white text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.4em] sm:tracking-[0.5em] transition-colors py-2"
                                             >
                                                 Abort Sequence
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-10">
-                                        <div className="p-6 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden">
-                                            <p className="text-gray-300 font-reading text-base italic leading-relaxed">"{activeArch.desc}"</p>
+                                    <div className="space-y-8 sm:space-y-10">
+                                        <div className="p-5 sm:p-6 bg-white/5 rounded-2xl border border-white/10 relative overflow-hidden">
+                                            <p className="text-gray-300 font-reading text-sm sm:text-base italic leading-relaxed">"{activeArch.desc}"</p>
                                         </div>
 
-                                        <div className="space-y-6">
+                                        <div className="space-y-4 sm:space-y-6">
                                             <div className="flex items-center gap-2">
                                                 <Brain className={`w-4 h-4 ${getColorClasses(activeArch.color).text}`} />
-                                                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em]">Load Functional Module:</span>
+                                                <span className="text-[9px] sm:text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em]">Load Functional Module:</span>
                                             </div>
                                             
-                                            <div className="space-y-4">
+                                            <div className="space-y-3 sm:space-y-4">
                                                 {activeArch.skills.map((skill) => (
                                                     <button 
                                                         key={skill.name}
                                                         onClick={() => handleSkillSelect(skill.name)} 
-                                                        className={`w-full p-6 rounded-2xl border transition-all text-left group ${selectedSkill === skill.name ? `bg-white/5 ${getColorClasses(activeArch.color).border} shadow-lg` : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+                                                        className={`w-full p-5 sm:p-6 rounded-2xl border transition-all text-left group ${selectedSkill === skill.name ? `bg-white/5 ${getColorClasses(activeArch.color).border} shadow-lg` : 'bg-white/5 border-white/10 hover:border-white/20'}`}
                                                     >
                                                         <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-5">
-                                                                <span className="text-3xl filter group-hover:scale-110 transition-transform">{skill.icon}</span>
-                                                                <span className={`font-tech text-sm uppercase tracking-[0.12em] ${selectedSkill === skill.name ? 'text-white' : 'text-gray-400'}`}>{skill.name}</span>
+                                                            <div className="flex items-center gap-4 sm:gap-5">
+                                                                <span className="text-2xl sm:text-3xl filter group-hover:scale-110 transition-transform">{skill.icon}</span>
+                                                                <span className={`font-tech text-xs sm:text-sm uppercase tracking-[0.12em] ${selectedSkill === skill.name ? 'text-white' : 'text-gray-400'}`}>{skill.name}</span>
                                                             </div>
-                                                            {selectedSkill === skill.name && <CheckCircle className={`w-6 h-6 ${getColorClasses(activeArch.color).text} animate-scaleIn`} />}
+                                                            {selectedSkill === skill.name && <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${getColorClasses(activeArch.color).text} animate-scaleIn`} />}
                                                         </div>
                                                         
                                                         {selectedSkill === skill.name && (
-                                                            <div className="mt-6 pt-6 border-t border-white/10 animate-fadeIn">
-                                                                <div className="flex items-start gap-4">
+                                                            <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/10 animate-fadeIn">
+                                                                <div className="flex items-start gap-3 sm:gap-4">
                                                                     <Info className={`w-4 h-4 ${getColorClasses(activeArch.color).text} shrink-0 mt-0.5`} />
-                                                                    <p className="text-sm text-gray-300 leading-relaxed font-reading opacity-90">{getSkillDesc(activeArch.id, skill.name)}</p>
+                                                                    <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-reading opacity-90">{getSkillDesc(activeArch.id, skill.name)}</p>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -378,20 +393,20 @@ export const ArchetypeShowcase: React.FC<ArchetypeShowcaseProps> = ({ onContinue
                                             </div>
                                         </div>
 
-                                        <div className="pt-4">
+                                        <div className="pt-2 sm:pt-4">
                                             <button 
                                                 onClick={initiateSync} 
                                                 disabled={!selectedSkill} 
-                                                className={`w-full py-6 ${getColorClasses(activeArch.color).bg} text-white font-tech text-xl uppercase tracking-[0.3em] rounded-2xl hover:brightness-125 transition-all shadow-lg flex items-center justify-center gap-4 disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
+                                                className={`w-full py-5 sm:py-6 ${getColorClasses(activeArch.color).bg} text-white font-tech text-base sm:text-xl uppercase tracking-[0.2em] sm:tracking-[0.3em] rounded-2xl hover:brightness-125 transition-all shadow-lg flex items-center justify-center gap-3 sm:gap-4 disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
                                             >
-                                                Confirm Selection <Zap className="w-6 h-6 fill-current" />
+                                                Confirm Selection <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
                                             </button>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="bg-black/40 border-t border-white/5 p-6 flex justify-center items-center text-[9px] text-gray-600 font-mono uppercase tracking-[0.4em]">
+                            <div className="bg-black/40 border-t border-white/5 p-5 sm:p-6 flex justify-center items-center text-[8px] sm:text-[9px] text-gray-600 font-mono uppercase tracking-[0.3em] sm:tracking-[0.4em]">
                                 System Interface v1.0.8 // All Nodes Synced
                             </div>
                         </div>
@@ -400,63 +415,79 @@ export const ArchetypeShowcase: React.FC<ArchetypeShowcaseProps> = ({ onContinue
             )}
 
             {/* Gateway List Container */}
-            <div className="w-full max-w-7xl mx-auto animate-fadeIn px-6 py-12 flex flex-col items-center relative z-10 space-y-12">
-                <div className="text-center space-y-4 pt-8 max-w-3xl">
-                    <h2 className="text-5xl md:text-7xl font-tech text-white uppercase tracking-[0.08em] text-shadow-glow leading-none">Cognitive Configuration</h2>
-                    <p className="text-gray-400 font-reading text-base md:text-lg leading-relaxed opacity-80">Synchronizing your interface with the God Brain mainframe. Allow AI calibration through the questionnaire, or manually override below.</p>
+            <div className="w-full max-w-7xl mx-auto animate-fadeIn px-4 sm:px-6 py-8 sm:py-12 flex flex-col items-center relative z-10 space-y-8 sm:space-y-12">
+                <div className="text-center space-y-3 sm:space-y-4 pt-4 sm:pt-8 max-w-3xl">
+                    <h2 className="text-3xl sm:text-5xl md:text-7xl font-tech text-white uppercase tracking-[0.05em] sm:tracking-[0.08em] text-shadow-glow leading-tight sm:leading-none">
+                        Cognitive Configuration
+                    </h2>
+                    <p className="text-gray-400 font-reading text-sm sm:text-base md:text-lg leading-relaxed opacity-80 px-2 sm:px-0">
+                        Synchronizing your interface with the God Brain mainframe. Allow AI calibration through the questionnaire, or manually override below.
+                    </p>
                 </div>
 
                 {viewMode === 'onboarding' && (
-                    <div className="w-full max-w-md relative group mt-4 shrink-0">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-orange-500 rounded-full blur opacity-25 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
-                        <button 
-                            onClick={handleStart} 
-                            className="relative w-full py-8 bg-black border border-white/20 text-white font-tech text-2xl uppercase tracking-[0.3em] rounded-full hover:bg-white hover:text-black transition-all shadow-[0_0_40px_rgba(0,0,0,0.5)] flex items-center justify-center gap-6 group-active:scale-[0.98]"
-                        >
-                            <Sparkles className="w-8 h-8 animate-pulse text-cyan-400" />
-                            <span>Begin Calibration</span>
-                            <div className="absolute right-8 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-2"><ArrowRight className="w-8 h-8" /></div>
-                        </button>
+                    <div className="w-full flex flex-col items-center gap-8 sm:gap-12">
+                        <div className="w-full max-w-md relative group mt-2 sm:mt-4 shrink-0">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-orange-500 rounded-full blur opacity-25 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
+                            <button 
+                                onClick={handleStart} 
+                                className="relative w-full py-6 sm:py-8 bg-black border border-white/20 text-white font-tech text-xl sm:text-2xl uppercase tracking-[0.2em] sm:tracking-[0.3em] rounded-full hover:bg-white hover:text-black transition-all shadow-[0_0_40px_rgba(0,0,0,0.5)] flex items-center justify-center gap-4 sm:gap-6 group-active:scale-[0.98]"
+                            >
+                                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 animate-pulse text-cyan-400" />
+                                <span>Begin Calibration</span>
+                                <div className="absolute right-6 sm:right-8 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-2"><ArrowRight className="w-6 h-6 sm:w-8 sm:h-8" /></div>
+                            </button>
+                        </div>
+                        
+                        {/* SCROLL INDICATOR */}
+                        {!scrolled && (
+                            <div className="flex flex-col items-center gap-2 animate-bounce opacity-40 hover:opacity-100 transition-opacity cursor-pointer text-center" onClick={() => containerRef.current?.scrollTo({ top: 450, behavior: 'smooth' })}>
+                                <span className="text-[8px] sm:text-[10px] font-mono tracking-[0.2em] sm:tracking-[0.3em] text-cyan-400 uppercase">Manual Override Options Below</span>
+                                <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
+                            </div>
+                        )}
                     </div>
                 )}
 
-                <div className="w-full flex items-center justify-center gap-8 py-8 shrink-0">
+                <div className="w-full flex items-center justify-center gap-4 sm:gap-8 py-6 sm:py-8 shrink-0">
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-                    <span className="text-[10px] font-mono text-gray-600 uppercase tracking-[0.8em] whitespace-nowrap px-4">Manual Access Gateways</span>
+                    <span className="text-base sm:text-xl md:text-2xl font-tech text-white uppercase tracking-[0.15em] sm:tracking-[0.3em] text-center px-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                        Manual Access Gateways
+                    </span>
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                 </div>
 
-                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-40">
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-32 sm:pb-40">
                     {ARCHETYPES_PREVIEW.map((arch) => {
                         const cl = getColorClasses(arch.color);
                         return (
                             <div 
                                 key={arch.id} 
                                 onClick={() => handleCardClick(arch.id)} 
-                                className={`bg-black/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] p-10 transition-all group relative overflow-hidden cursor-pointer active:scale-[0.98] flex flex-col min-h-[400px] shadow-2xl hover:shadow-[0_0_30px_rgba(0,255,255,0.1)] ${cl.hoverBorder} ${cl.hoverBg}`}
+                                className={`bg-black/40 backdrop-blur-md border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-8 sm:p-10 transition-all group relative overflow-hidden cursor-pointer active:scale-[0.98] flex flex-col min-h-[380px] sm:min-h-[400px] shadow-2xl hover:shadow-[0_0_30px_rgba(0,255,255,0.1)] ${cl.hoverBorder} ${cl.hoverBg}`}
                             >
                                 <div className={`absolute inset-0 bg-gradient-to-br from-${arch.color}-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
                                 
                                 <div className="relative z-10 flex flex-col h-full">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <div className={`p-5 bg-white/5 rounded-3xl group-hover:scale-110 transition-transform duration-500 border border-white/10 shadow-inner group-hover:border-${arch.color}-500/30`}>
+                                    <div className="flex items-center justify-between mb-6 sm:mb-8">
+                                        <div className={`p-4 sm:p-5 bg-white/5 rounded-2xl sm:rounded-3xl group-hover:scale-110 transition-transform duration-500 border border-white/10 shadow-inner group-hover:border-${arch.color}-500/30`}>
                                             {arch.icon}
                                         </div>
-                                        <div className={`text-[10px] font-mono opacity-60 uppercase tracking-[0.2em] flex items-center gap-2 group-hover:opacity-100 transition-opacity ${cl.text}`}>
+                                        <div className={`text-[8px] sm:text-[10px] font-mono opacity-60 uppercase tracking-[0.2em] flex items-center gap-2 group-hover:opacity-100 transition-opacity ${cl.text}`}>
                                             <Zap className="w-3 h-3" /> Ready
                                         </div>
                                     </div>
 
-                                    <h3 className="font-tech text-white text-2xl uppercase tracking-[0.12em] mb-3 leading-none group-hover:text-shadow-glow transition-all">{arch.title}</h3>
-                                    <div className={`h-0.5 w-16 bg-white/20 mb-6 transition-all duration-500 group-hover:w-full group-hover:bg-current ${cl.text} group-hover:shadow-[0_0_15px_currentColor]`}></div>
+                                    <h3 className="font-tech text-white text-xl sm:text-2xl uppercase tracking-[0.12em] mb-2 sm:mb-3 leading-none group-hover:text-shadow-glow transition-all">{arch.title}</h3>
+                                    <div className={`h-0.5 w-12 sm:w-16 bg-white/20 mb-5 sm:mb-6 transition-all duration-500 group-hover:w-full group-hover:bg-current ${cl.text} group-hover:shadow-[0_0_15px_currentColor]`}></div>
                                     
-                                    <p className="text-gray-400 font-reading text-sm leading-relaxed mb-10 opacity-80 group-hover:opacity-100 group-hover:text-white transition-all flex-1">
+                                    <p className="text-gray-400 font-reading text-xs sm:text-sm leading-relaxed mb-8 sm:mb-10 opacity-80 group-hover:opacity-100 group-hover:text-white transition-all flex-1">
                                         {arch.desc}
                                     </p>
 
                                     <div className="flex flex-wrap gap-2 pt-4 border-t border-white/5">
                                         {arch.skills.map((skill, i) => (
-                                            <span key={i} className={`text-[9px] font-mono font-bold text-gray-400 border border-white/10 px-3 py-1.5 rounded-full bg-white/5 flex items-center gap-2 group-hover:bg-${arch.color}-500/10 group-hover:text-white group-hover:border-${arch.color}-500/30 transition-all`}>
+                                            <span key={i} className={`text-[8px] sm:text-[9px] font-mono font-bold text-gray-400 border border-white/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/5 flex items-center gap-1.5 sm:gap-2 group-hover:bg-${arch.color}-500/10 group-hover:text-white group-hover:border-${arch.color}-500/30 transition-all`}>
                                                 {skill.icon} {skill.name}
                                             </span>
                                         ))}
