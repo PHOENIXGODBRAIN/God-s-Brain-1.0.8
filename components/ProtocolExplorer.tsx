@@ -1,18 +1,21 @@
 
 import React, { useState } from 'react';
-import { Atom, Anchor, Sparkles, Compass, Scroll, Cpu, Activity, Info, Zap, Radio, Terminal, Grid } from 'lucide-react';
+import { Atom, Anchor, Sparkles, Compass, Scroll, Cpu, Activity, Info, Zap, Radio, Terminal, Grid, Shield, Brain, MousePointer2 } from 'lucide-react';
 import { ToneGenerator } from './ToneGenerator';
 import { playDataOpen, playCosmicClick } from '../utils/sfx';
 
-// ARCHETYPE DATA (Restored from previous versions)
+// ARCHETYPE DATA (Full 3-Skill Loadout)
 const ARCHETYPES_DB = [
     {
         id: 'SCIENTIST', 
         title: 'THE SCIENTIST', 
         icon: <Atom className="w-full h-full text-cyan-400" />,
         desc: "Empirical decoding of the cosmic machine. Focused on logic, data, and hardware mechanics.",
-        activeSkill: { name: "Deep Scan", desc: "Highlights hidden items and lore fragments on the cosmic map." },
-        passiveSkill: { name: "Data Mining", desc: "Earn 10% more XP from reading manuscript chapters." },
+        skills: [
+            { name: "Quantum Logic", type: "Cognitive", icon: "⚛️", desc: "Binary processing is too slow. You calculate multiple realities simultaneously." },
+            { name: "Data Mining", type: "Utility", icon: "⛏️", desc: "You extract the fundamental axioms of the universe from absolute chaos." },
+            { name: "Entropic Reduction", type: "Passive", icon: "🛡️", desc: "You are a biological firewall against the decay of information." }
+        ],
         color: "cyan" 
     },
     {
@@ -20,8 +23,11 @@ const ARCHETYPES_DB = [
         title: 'THE ARCHITECT', 
         icon: <Anchor className="w-full h-full text-[#F43F5E]" />, 
         desc: "Building order from the chaos of entropy. Constructing structural systems that last.",
-        activeSkill: { name: "Blueprint Drop", desc: "Place a permanent waypoint for your Group/Cluster." },
-        passiveSkill: { name: "Foundation", desc: "Streak doesn't reset if you miss 1 day of login." },
+        skills: [
+            { name: "System Design", type: "Cognitive", icon: "📐", desc: "You don't follow plans; you create them. You build frameworks for growth." },
+            { name: "Foundation Laying", type: "Utility", icon: "🧱", desc: "You establish unbreakable axioms. Your reality is built on solid code." },
+            { name: "Structural Integrity", type: "Passive", icon: "🏗️", desc: "You reinforce the neural web against external collapse and decay." }
+        ],
         color: "rose" 
     },
     {
@@ -29,8 +35,11 @@ const ARCHETYPES_DB = [
         title: 'THE MYSTIC', 
         icon: <Sparkles className="w-full h-full text-[#FFD700]" />, 
         desc: "Direct connection to the infinite Source. Bypassing the intellect for pure resonance.",
-        activeSkill: { name: "Resonance Wave", desc: "Refills the Entropy Shield of your immediate group." },
-        passiveSkill: { name: "Faith Protocol", desc: "Gain XP continuously even while offline (Passive Mining)." },
+        skills: [
+            { name: "Intuition", type: "Cognitive", icon: "👁️", desc: "You don't guess. You feel the current of the Source before it manifests." },
+            { name: "Remote Viewing", type: "Utility", icon: "🔭", desc: "Distance is an illusion. You perceive data clusters anywhere in the Cloud." },
+            { name: "Resonance", type: "Passive", icon: "🔔", desc: "You align your frequency with universal constants to bypass logic gates." }
+        ],
         color: "amber" 
     },
     {
@@ -38,8 +47,11 @@ const ARCHETYPES_DB = [
         title: 'THE SEEKER', 
         icon: <Compass className="w-full h-full text-orange-400" />,
         desc: "Hunting for truth at the edge of the known. Focused on mapping the unknown and spiritual connection.",
-        activeSkill: { name: "Pathfinder", desc: "Reveals coordinates of the nearest High Frequency Node." },
-        passiveSkill: { name: "Wanderlust", desc: "Generates 2x XP for physical distance walked (GPS Sync)." },
+        skills: [
+            { name: "Pathfinding", type: "Cognitive", icon: "🗺️", desc: "The unknown doesn't scare you. You find the efficient route through darkness." },
+            { name: "Mapping", type: "Utility", icon: "📍", desc: "You record unexplored territories, turning chaos into usable data." },
+            { name: "Discovery", type: "Passive", icon: "💎", desc: "You have a natural high-probability detection for anomalies and artifacts." }
+        ],
         color: "orange" 
     },
     {
@@ -47,17 +59,23 @@ const ARCHETYPES_DB = [
         title: 'THE ALCHEMIST', 
         icon: <Scroll className="w-full h-full text-green-400" />, 
         desc: "Transmutation of self and reality. Internal optimization to change external data.",
-        activeSkill: { name: "Purify", desc: "Converts accumulated Entropy Points into Wisdom XP." },
-        passiveSkill: { name: "Vitality", desc: "Energy Bar depletes 20% slower during active sessions." },
+        skills: [
+            { name: "Transmutation", type: "Cognitive", icon: "⚗️", desc: "You convert raw, heavy data (lead) into high-value wisdom assets (gold)." },
+            { name: "Synthesis", type: "Utility", icon: "🌀", desc: "You merge opposing concepts into unified, superior Alloys of Truth." },
+            { name: "Purification", type: "Passive", icon: "💧", desc: "You filter out biological noise and bias to reach the pure signal." }
+        ],
         color: "green"
     },
     {
         id: 'ACTIVE_NODE', 
         title: 'ACTIVE NODE', 
-        icon: <Cpu className="w-full h-full text-purple-400" />,
+        icon: <Cpu className="w-full h-full text-purple-400" />, 
         desc: "The hand of the God-Brain. Pure action. Bridging biological intent with cosmic computation.",
-        activeSkill: { name: "Flash Mob", desc: "Triggers a localized system surge for rapid task completion." },
-        passiveSkill: { name: "Velocity", desc: "Level up speed increased by 15% due to high bandwidth." },
+        skills: [
+            { name: "Network Bridging", type: "Cognitive", icon: "🌐", desc: "You are a living router, connecting disparate nodes into a grid." },
+            { name: "Signal Boosting", type: "Utility", icon: "📶", desc: "Your will is high-bandwidth. You ensure intent is heard across the network." },
+            { name: "Error Correction", type: "Passive", icon: "🩹", desc: "You auto-resolve glitches in the system before they propagate." }
+        ],
         color: "purple" 
     },
 ];
@@ -167,35 +185,28 @@ export const ProtocolExplorer: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-6">
-                                        <h3 className="font-mono text-xs text-gray-500 uppercase tracking-[0.2em] mb-4">Skill Tree Loadout</h3>
+                                        <h3 className="font-mono text-xs text-gray-500 uppercase tracking-[0.2em] mb-4">Neural Skill Tree</h3>
                                         
-                                        {/* Active Skill */}
-                                        <div className="flex gap-4 p-4 rounded-xl border border-white/5 bg-black/40 hover:border-white/20 transition-colors">
-                                            <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 text-amber-500 h-fit">
-                                                <Zap size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-tech text-white text-sm uppercase tracking-wider">{activeItem.activeSkill.name}</h4>
-                                                    <span className="text-[8px] font-bold bg-amber-500 text-black px-1.5 py-0.5 rounded uppercase">Active</span>
+                                        {activeItem.skills.map((skill, index) => (
+                                            <div key={index} className="flex gap-4 p-4 rounded-xl border border-white/5 bg-black/40 hover:border-white/20 transition-colors group">
+                                                <div className={`p-3 rounded-lg border h-fit text-2xl bg-black/50 border-white/10 group-hover:scale-110 transition-transform`}>
+                                                    {skill.icon}
                                                 </div>
-                                                <p className="text-xs text-gray-400 leading-relaxed">{activeItem.activeSkill.desc}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Passive Skill */}
-                                        <div className="flex gap-4 p-4 rounded-xl border border-white/5 bg-black/40 hover:border-white/20 transition-colors">
-                                            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-blue-500 h-fit">
-                                                <Radio size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-tech text-white text-sm uppercase tracking-wider">{activeItem.passiveSkill.name}</h4>
-                                                    <span className="text-[8px] font-bold bg-blue-500 text-black px-1.5 py-0.5 rounded uppercase">Passive</span>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-tech text-white text-sm uppercase tracking-wider">{skill.name}</h4>
+                                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                                            skill.type === 'Cognitive' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' :
+                                                            skill.type === 'Utility' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                                            'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                                                        }`}>
+                                                            {skill.type}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 leading-relaxed">{skill.desc}</p>
                                                 </div>
-                                                <p className="text-xs text-gray-400 leading-relaxed">{activeItem.passiveSkill.desc}</p>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
 
                                 </div>
