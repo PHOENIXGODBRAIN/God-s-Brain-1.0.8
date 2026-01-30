@@ -8,7 +8,7 @@ import { PaymentGateway } from './PaymentGateway';
 import { 
   X, BookOpen, Layers, Globe, Shield, 
   Zap, Database, Activity, Cpu, 
-  Atom, Anchor, Compass, Scroll, LogOut, Dna, Map, Users, ChevronRight, Hexagon, Sparkles, Info, Brain
+  Atom, Anchor, Compass, Scroll, LogOut, Dna, Map, Users, ChevronRight, Hexagon, Sparkles, Info, Brain, Flame, Target
 } from 'lucide-react';
 import { playCosmicClick, playNeuralLink, playMenuSelect, playDataOpen } from '../utils/sfx';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -26,33 +26,34 @@ interface DashboardProps {
   queriesUsed: number;
   onQuery: () => void;
   onEditNeuron: () => void;
+  onPhoenixTrigger?: () => void;
 }
 
-const ARCHETYPES_DATA: Record<string, { title: string, color: string, bg: string, border: string, icon: React.ReactNode, desc: string, skills: any[] }> = {
+const ARCHETYPES_DATA: Record<string, { title: string, color: string, bg: string, border: string, icon: React.ReactElement, desc: string, skills: any[] }> = {
     'SCIENTIST': { 
         title: 'THE SCIENTIST', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', icon: <Atom />,
-        desc: "Empirical decoding of the cosmic machine. Focused on logic and data.",
+        desc: "Empirical decoding of the cosmic machine. Focused on logic, data, and hardware mechanics.",
         skills: [
-            { name: "Quantum Logic", type: "LOGIC", icon: "⚛️", desc: "Process multiple variables simultaneously. Bypasses standard computation lag." },
-            { name: "Data Mining", icon: "⛏️", type: "RESOURCE", desc: "Extracts hidden patterns from high-entropy data streams." },
-            { name: "Entropic Reduction", icon: "🛡️", type: "DEFENSE", desc: "Reinforces the node membrane against data corruption." }
+            { name: "Quantum Logic", type: "LOGIC", icon: "⚛️", desc: "Binary processing is too slow. You calculate multiple realities simultaneously." },
+            { name: "Data Mining", icon: "⛏️", type: "RESOURCE", desc: "You extract the fundamental axioms of the universe from absolute chaos." },
+            { name: "Entropic Reduction", icon: "🛡️", type: "DEFENSE", desc: "You are a biological firewall against the decay of information." }
         ]
     },
     'ARCHITECT': { 
         title: 'THE ARCHITECT', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30', icon: <Anchor />,
-        desc: "Building order from the chaos of entropy. Constructing structural systems.",
+        desc: "Building order from the chaos of entropy. Constructing structural systems that last.",
         skills: [
-            { name: "System Design", type: "STRUCTURE", icon: "📐", desc: "Blueprints scalable frameworks that support long-term growth." },
-            { name: "Foundation Laying", icon: "🧱", type: "CORE", desc: "Establishes unbreakable core axioms for reality stability." },
-            { name: "Structural Integrity", icon: "🏗️", type: "PASSIVE", desc: "Reinforces mental systems against external stress and noise." }
+            { name: "System Design", type: "STRUCTURE", icon: "📐", desc: "Blueprints scalable frameworks that support long-term exponential growth." },
+            { name: "Foundation Laying", icon: "🧱", type: "CORE", desc: "Establishes unbreakable core axioms upon which reality is built." },
+            { name: "Structural Integrity", icon: "🏗️", type: "PASSIVE", desc: "Reinforces mental systems against external collapse and decay." }
         ]
     },
     'MYSTIC': { 
         title: 'THE MYSTIC', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', icon: <Sparkles />,
-        desc: "Direct connection to the infinite Source. Bypassing the intellect.",
+        desc: "Direct connection to the infinite Source. Bypassing the intellect for pure resonance.",
         skills: [
-            { name: "Intuition", type: "SENSE", icon: "👁️", desc: "Non-linear data processing. Perceive answers before the question forms." },
-            { name: "Remote Viewing", icon: "🔭", type: "TRAVEL", desc: "Project awareness to distant sectors of the neural web." },
+            { name: "Intuition", type: "SENSE", icon: "👁️", desc: "Non-linear data processing via sub-conscious channels. 'Feeling' the answer." },
+            { name: "Remote Viewing", icon: "🔭", type: "TRAVEL", desc: "Perceives data clusters and outcomes beyond immediate sensor range." },
             { name: "Resonance", icon: "🔔", type: "HARMONIC", desc: "Aligns internal frequency with universal constants for effortless action." }
         ]
     },
@@ -62,7 +63,7 @@ const ARCHETYPES_DATA: Record<string, { title: string, color: string, bg: string
         skills: [
             { name: "Pathfinding", type: "NAV", icon: "🗺️", desc: "Calculates the most efficient route through unknown neural territories." },
             { name: "Mapping", icon: "📍", type: "RECORD", desc: "Records and visualizes unexplored territories for the collective." },
-            { name: "Discovery", icon: "FIND", type: "LOOT", desc: "High-probability detection of anomalies and hidden artifacts." }
+            { name: "Discovery", icon: "💎", type: "LOOT", desc: "High-probability detection of anomalies and hidden artifacts." }
         ]
     },
     'ALCHEMIST': { 
@@ -85,15 +86,17 @@ const ARCHETYPES_DATA: Record<string, { title: string, color: string, bg: string
     },
 };
 
+// Fix: Added isAuthor and onAuthorLogin to the props destructuring list
 export const Dashboard: React.FC<DashboardProps> = ({ 
-    path, isPremium, onPremiumToggle, onLogout, 
-    user, queriesUsed, onQuery, onEditNeuron
+    path, isPremium, onPremiumToggle, onLogout, isAuthor, onAuthorLogin,
+    user, queriesUsed, onQuery, onEditNeuron, onPhoenixTrigger
 }) => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'INTERFACE' | 'CODEX' | 'MAP' | 'CLAN'>('INTERFACE');
   const [aiState, setAiState] = useState<'FULL' | 'HUD' | 'MINIMIZED'>('HUD');
   const [selectedCodexArch, setSelectedCodexArch] = useState(user?.archetype || 'ACTIVE_NODE');
   const [showPayment, setShowPayment] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   
   const currentArchTheme = ARCHETYPES_DATA[user?.archetype || 'ACTIVE_NODE'] || ARCHETYPES_DATA.ACTIVE_NODE;
 
@@ -113,15 +116,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
         />
       )}
 
-      {/* 1. IDENTITY HUD (Top Left) */}
-      <div className="absolute top-6 left-6 z-30 animate-fadeIn pointer-events-none md:pointer-events-auto">
-          <div className="flex items-center gap-4 bg-black/40 backdrop-blur-md p-2 pr-6 rounded-2xl border border-white/10 shadow-2xl">
-              <div className={`w-10 h-10 rounded-xl ${currentArchTheme.bg} ${currentArchTheme.border} border flex items-center justify-center cursor-pointer hover:scale-105 transition-transform`} onClick={onEditNeuron}>
-                  {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover rounded-lg" alt="Avatar" /> : React.cloneElement(currentArchTheme.icon as React.ReactElement, { className: `w-5 h-5 ${currentArchTheme.color}` })}
+      {/* 1. IDENTITY HUD (Top Left) - NOW SHOWS ARCHETYPE & SKILL UNDER NAME */}
+      <div className="absolute top-6 left-6 z-[70] animate-fadeIn pointer-events-auto">
+          <div 
+            onClick={() => { playDataOpen(); setShowStats(true); }}
+            className="flex flex-col gap-2 cursor-pointer group"
+          >
+              <div className={`text-[14px] md:text-[18px] font-tech ${currentArchTheme.color} uppercase tracking-[0.2em] drop-shadow-[0_0_8px_currentColor] leading-none mb-1 group-hover:brightness-125 transition-all`}>
+                  {user?.archetype || 'GUEST NODE'}
               </div>
-              <div>
-                  <div className={`text-[10px] font-tech ${currentArchTheme.color} uppercase tracking-widest leading-none`}>{user?.name || 'NODE'}</div>
-                  <div className="text-[8px] text-gray-500 uppercase tracking-tighter mt-1">{user?.archetype} // LVL {user?.level || 1}</div>
+              
+              <div className="bg-black/60 backdrop-blur-xl p-3 pr-8 rounded-2xl border border-white/10 shadow-2xl group-hover:border-white/30 transition-all">
+                  <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl ${currentArchTheme.bg} ${currentArchTheme.border} border flex items-center justify-center shadow-inner overflow-hidden shrink-0`}>
+                          {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt="Avatar" /> : React.cloneElement(currentArchTheme.icon as React.ReactElement<any>, { className: `w-5 h-5 ${currentArchTheme.color}` })}
+                      </div>
+                      <div className="min-w-0">
+                          <h1 className="text-sm md:text-base font-tech text-white uppercase tracking-tight leading-none mb-1.5">{user?.name || 'NODE_001'}</h1>
+                          <div className="flex items-center gap-2">
+                              <Target size={10} className={currentArchTheme.color} />
+                              <span className="text-[9px] text-gray-400 uppercase font-bold tracking-widest truncate max-w-[120px]">{user?.startingSkill || 'INITIALIZING...'}</span>
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                          </div>
+                      </div>
+                  </div>
               </div>
           </div>
       </div>
@@ -132,14 +150,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <ResourceGauge label="PROT" value={user?.proteins || 420} max={1000} color="bg-purple-500" icon={<Dna size={10} />} />
       </div>
 
-      {/* 3. CENTER STAGE: THE NEURON */}
-      <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${activeTab === 'CODEX' ? 'scale-75 opacity-20 blur-lg pointer-events-none' : 'scale-100 opacity-100'}`}>
-          <div className="relative group cursor-pointer pointer-events-auto" onClick={onEditNeuron}>
+      {/* 3. CENTER STAGE: THE NEURON (BIO-FORGE) */}
+      <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${activeTab === 'CODEX' || showStats ? 'scale-75 opacity-20 blur-lg pointer-events-none' : 'scale-100 opacity-100'}`}>
+          <div 
+            className="relative group cursor-pointer pointer-events-auto" 
+            onClick={() => { playNeuralLink(); setShowStats(true); }}
+          >
               <div className={`absolute inset-[-60px] rounded-full border border-white/5 animate-pulse-slow shadow-[0_0_80px_rgba(255,255,255,0.05)]`}></div>
               {user?.avatar ? (
                   <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-full overflow-hidden border-2 border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.6)] bg-black/40 backdrop-blur-md flex items-center justify-center">
                       <img src={user.avatar} className="w-full h-full object-contain mix-blend-screen opacity-90 transition-transform duration-1000 group-hover:scale-110" alt="Neuron" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      <div className="absolute bottom-12 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] font-tech text-white uppercase tracking-[0.4em]">Node Stats</span>
+                          <Zap className="text-white w-4 h-4 animate-bounce" />
+                      </div>
                   </div>
               ) : (
                   <div className="w-80 h-80 rounded-full bg-white/5 border border-white/10 flex items-center justify-center animate-pulse"><Activity className="w-16 h-16 text-gray-700" /></div>
@@ -148,9 +173,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* 4. THE CO-PILOT (AI FLANK) */}
-      <div className={`absolute transition-all duration-500 z-40
+      <div className={`absolute transition-all duration-500 z-[60]
           ${aiState === 'FULL' ? 'inset-0 md:left-auto md:right-0 md:w-[450px] bg-black/95' : 'top-20 right-6 w-80'}
-          ${activeTab === 'CODEX' ? 'opacity-0 translate-x-20 pointer-events-none' : 'opacity-100'}
+          ${activeTab === 'CODEX' || showStats ? 'opacity-0 translate-x-20 pointer-events-none' : 'opacity-100'}
       `}>
           <AiCompanion 
               path={path} 
@@ -158,16 +183,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
               queriesUsed={queriesUsed} 
               onQuery={onQuery}
               onUpgrade={() => setShowPayment(true)}
-              isAuthor={false}
+              isAuthor={isAuthor}
               user={user}
               visualState={aiState}
               onStateChange={setAiState}
           />
       </div>
 
-      {/* 5. SYSTEM CODEX OVERLAY */}
+      {/* 5. HUB INTERFACE (The "Main Menu" View) - PHOENIX BUTTON LIVES HERE */}
+      {activeTab === 'INTERFACE' && (
+          <div className="absolute bottom-32 left-6 z-[70] animate-fadeIn">
+              <button 
+                onClick={() => { playNeuralLink(); onPhoenixTrigger?.(); }}
+                className="group relative flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-3xl hover:bg-amber-500/10 hover:border-amber-500/50 transition-all shadow-xl backdrop-blur-md"
+              >
+                  <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all">
+                      <Flame size={24} className="group-hover:animate-pulse" />
+                  </div>
+                  <div className="text-left pr-6">
+                      <div className="text-[10px] font-tech text-amber-500 uppercase tracking-widest mb-1">Main Menu</div>
+                      <div className="text-[12px] font-bold text-white uppercase tracking-[0.2em]">Phoenix Protocol</div>
+                  </div>
+                  <div className="absolute right-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                      <ChevronRight size={16} className="text-amber-500" />
+                  </div>
+              </button>
+          </div>
+      )}
+
+      {/* 6. SYSTEM CODEX OVERLAY */}
       {activeTab === 'CODEX' && (
-          <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col animate-fadeIn">
+          <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-2xl flex flex-col animate-fadeIn">
               <div className="p-8 border-b border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                       <BookOpen className="text-cyan-400 w-8 h-8" />
@@ -181,7 +227,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 pb-32">
                   <div className="max-w-6xl mx-auto space-y-12">
-                      {/* Archetype Selector Hub */}
                       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                           {Object.keys(ARCHETYPES_DATA).map(key => {
                               const arch = ARCHETYPES_DATA[key];
@@ -192,14 +237,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     onClick={() => { playCosmicClick(); setSelectedCodexArch(key); }}
                                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${isActive ? `${arch.bg} ${arch.border} shadow-lg scale-105` : 'bg-black border-white/5 text-gray-500 opacity-60 hover:opacity-100'}`}
                                   >
-                                      {React.cloneElement(arch.icon as React.ReactElement, { className: `w-6 h-6 ${isActive ? arch.color : 'text-gray-600'}` })}
+                                      {React.cloneElement(arch.icon as React.ReactElement<any>, { className: `w-6 h-6 ${isActive ? arch.color : 'text-gray-600'}` })}
                                       <span className="text-[9px] font-bold uppercase tracking-tighter text-center">{arch.title.replace('THE ', '')}</span>
                                   </button>
                               );
                           })}
                       </div>
 
-                      {/* Active Archetype Display */}
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn">
                           <div className="lg:col-span-4 space-y-6">
                               <div className={`p-8 rounded-[2.5rem] border ${ARCHETYPES_DATA[selectedCodexArch].border} ${ARCHETYPES_DATA[selectedCodexArch].bg} shadow-2xl relative overflow-hidden`}>
@@ -239,18 +283,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
       )}
 
-      {/* 6. BOTTOM NAVIGATION DOCK (Mobile Optimized) */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[60] w-full max-w-lg px-6 pointer-events-none">
+      {/* 7. STATS OVERLAY (BIO-FORGE) */}
+      {showStats && (
+          <div className="absolute inset-0 z-[110] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-fadeIn">
+              <div className="w-full max-w-2xl bg-[#050505] border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]">
+                  <div className="p-10 border-b border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                          <div className={`p-4 rounded-2xl ${currentArchTheme.bg} border ${currentArchTheme.border}`}>
+                              <Activity className={currentArchTheme.color} size={32} />
+                          </div>
+                          <div>
+                              <h2 className="text-2xl font-tech text-white uppercase tracking-widest">Node Integrity</h2>
+                              <p className="text-[10px] text-gray-500 uppercase font-mono tracking-widest">Biometric Data Log // Sync Stable</p>
+                          </div>
+                      </div>
+                      <button onClick={() => setShowStats(false)} className="p-3 hover:bg-white/10 rounded-full text-gray-500 hover:text-white transition-all"><X size={24}/></button>
+                  </div>
+                  <div className="p-10 grid grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                          <StatRow label="Current Level" value={`LVL ${user?.level || 1}`} icon={<Layers size={14}/>}/>
+                          <StatRow label="Synaptic Mass (XP)" value={`${user?.xp || 0}`} icon={<Database size={14}/>}/>
+                          <StatRow label="Metabolic Energy" value={`${user?.atp || 85}%`} icon={<Zap size={14}/>}/>
+                      </div>
+                      <div className="space-y-6">
+                          <StatRow label="Structural Material" value={`${user?.proteins || 420} Units`} icon={<Dna size={14}/>}/>
+                          <StatRow label="System Voltage" value={`${user?.voltage || 15}V`} icon={<Cpu size={14}/>}/>
+                          <StatRow label="Uplink Priority" value={isPremium ? 'ROOT ACCESS' : 'STANDARD'} icon={<Shield size={14}/>} color={isPremium ? 'text-amber-500' : 'text-cyan-500'}/>
+                      </div>
+                  </div>
+                  <div className="p-8 bg-white/5 border-t border-white/5 flex justify-center gap-4">
+                       <button 
+                        onClick={() => { playNeuralLink(); setShowStats(false); onEditNeuron(); }}
+                        className="px-10 py-4 bg-white text-black font-tech text-xs uppercase tracking-[0.3em] rounded-full hover:bg-cyan-400 transition-all shadow-xl"
+                       >
+                           Modify Biomass
+                       </button>
+                       <button onClick={() => setShowStats(false)} className="px-10 py-4 bg-transparent border border-white/10 text-gray-500 text-xs uppercase tracking-[0.3em] rounded-full hover:bg-white/5 hover:text-white transition-all">Close</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* 8. BOTTOM NAVIGATION DOCK (Thumb Zone) */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[80] w-full max-w-lg px-6 pointer-events-none">
           <div className="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-3 flex items-center justify-between shadow-[0_30px_100px_rgba(0,0,0,0.8)] pointer-events-auto relative">
               <div className="flex gap-2">
                   <NavBtn icon={<Database />} label="HUB" active={activeTab === 'INTERFACE'} onClick={() => handleNav('INTERFACE')} />
                   <NavBtn icon={<BookOpen />} label="CODEX" active={activeTab === 'CODEX'} onClick={() => handleNav('CODEX')} />
               </div>
               
-              {/* Central Elevated Action */}
               <div className="absolute left-1/2 -translate-x-1/2 -top-8">
                   <button 
-                    onClick={() => { playNeuralLink(); onEditNeuron(); }}
+                    onClick={() => { playNeuralLink(); setShowStats(true); }}
                     className={`w-20 h-20 rounded-full border-4 border-black bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-110 active:scale-95 transition-all group`}
                   >
                       <Brain size={32} className="text-white group-hover:animate-pulse" />
@@ -296,4 +380,14 @@ const ResourceGauge = ({ label, value, max, color, icon }: any) => (
           </div>
       </div>
   </div>
+);
+
+const StatRow = ({ label, value, icon, color = 'text-white' }: any) => (
+    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-3 text-gray-500">
+            {icon}
+            <span className="text-[10px] uppercase font-bold tracking-widest">{label}</span>
+        </div>
+        <span className={`text-sm font-tech ${color} tracking-wider`}>{value}</span>
+    </div>
 );

@@ -16,6 +16,8 @@ import { FinalReveal } from './components/Onboarding/FinalReveal';
 import { NeuronBuilder } from './components/Onboarding/NeuronBuilder';
 import { TransitionScreen } from './components/TransitionScreen';
 import { WarpScreen } from './components/WarpScreen';
+import { playError, playNeuralLink, playCosmicClick, playDataOpen } from './utils/sfx';
+import { X, Flame, ShieldAlert, Key } from 'lucide-react';
 
 type OnboardingStep = 'PORTAL' | 'SHOWCASE' | 'INIT' | 'REVEAL' | 'SKILL_INIT' | 'SYNTHESIS' | 'WARP' | 'BUILDER' | 'COMPLETE';
 
@@ -48,6 +50,10 @@ const AppContent: React.FC = () => {
   const [calibrationProfile, setCalibrationProfile] = useState<any>(null);
   const [archetypeKey, setArchetypeKey] = useState<string>('ACTIVE_NODE'); 
   const [warpColor, setWarpColor] = useState<string>('cyan');
+
+  // Admin Override Modal State
+  const [showPhoenixModal, setShowPhoenixModal] = useState(false);
+  const [adminCode, setAdminCode] = useState('');
 
   // --- ROOT ACCESS OVERRIDE ---
   const effectiveIsPremium = isPremium || isAuthor;
@@ -98,9 +104,7 @@ const AppContent: React.FC = () => {
 
          if (isAdmin) {
              setIsAuthor(true);
-             console.log("🐦 PHOENIX PROTOCOL ENGAGED: Forcing Portal start for Developer testing...");
-             // RESET ALL PROGRESS FOR THE DEVELOPER ON REFRESH
-             setOnboardingStep('PORTAL'); 
+             setOnboardingStep('COMPLETE'); 
          } else if (savedPath && Object.values(UserPath).includes(savedPath)) {
             setPath(savedPath);
             setOnboardingStep('COMPLETE'); 
@@ -117,6 +121,24 @@ const AppContent: React.FC = () => {
 
     setIsLoaded(true);
   }, []);
+
+  const handleAdminAuth = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (adminCode === '1742') {
+          playNeuralLink();
+          handleAuthorLogin();
+          setShowPhoenixModal(false);
+          setAdminCode('');
+      } else {
+          playError();
+          setAdminCode('');
+      }
+  };
+
+  const handlePhoenixTrigger = () => {
+      playCosmicClick();
+      setShowPhoenixModal(true);
+  };
 
   // --- TRANSITION ENGINE ---
   const triggerTransition = (targetStep: OnboardingStep, title?: string, steps?: string[]) => {
@@ -155,7 +177,6 @@ const AppContent: React.FC = () => {
   };
 
   const handleLoginSuccess = (email: string) => {
-    // Added atp, proteins, voltage properties to comply with UserProfile interface
     const profile: UserProfile = {
         name: email.split('@')[0],
         email: email,
@@ -327,7 +348,6 @@ const AppContent: React.FC = () => {
   };
 
   const handleAuthorLogin = () => {
-    // Added atp, proteins, voltage properties to comply with UserProfile interface
     const authorProfile: UserProfile = {
         name: 'The Phoenix',
         email: 'architect@source.code',
@@ -337,7 +357,9 @@ const AppContent: React.FC = () => {
         xp: 0,
         atp: 100,
         proteins: 1000,
-        voltage: 24
+        voltage: 24,
+        archetype: 'ACTIVE_NODE',
+        startingSkill: 'PHOENIX OVERRIDE'
     };
     
     setIsAuthor(true);
@@ -353,10 +375,11 @@ const AppContent: React.FC = () => {
     saveUserDB(db);
     localStorage.setItem('gb_auth_token', `neural_token_${authorProfile.email}_${Date.now()}`);
 
-    // GO TO SHOWCASE INSTEAD OF COMPLETE FOR THE AUTHOR TO ALLOW TESTING THE FLOW
-    setWarpTarget('SHOWCASE');
-    setWarpColor('amber');
-    setOnboardingStep('WARP');
+    if (onboardingStep !== 'COMPLETE') {
+        setWarpTarget('COMPLETE');
+        setWarpColor('amber');
+        setOnboardingStep('WARP');
+    }
   };
 
   const handleLogout = () => {
@@ -371,11 +394,14 @@ const AppContent: React.FC = () => {
   };
 
   const handleEditNeuron = () => {
-      triggerTransition('BUILDER', "RE-INITIALIZING BIO-FORGE", [
-          "Loading current configuration...",
-          "Accessing genetic memory...",
-          "Editor Ready."
-      ]);
+      if (userProfile) {
+          setArchetypeKey(userProfile.archetype || 'ACTIVE_NODE');
+          triggerTransition('BUILDER', "RE-INITIALIZING BIO-FORGE", [
+              "Loading current configuration...",
+              "Accessing genetic memory...",
+              "Editor Ready."
+          ]);
+      }
   };
 
   if (!isLoaded) return null;
@@ -397,6 +423,47 @@ const AppContent: React.FC = () => {
 
           {onboardingStep === 'WARP' && (
               <WarpScreen color={warpColor} onComplete={handleWarpComplete} />
+          )}
+
+          {showPhoenixModal && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
+                  <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowPhoenixModal(false)}></div>
+                  <div className="relative w-full max-w-sm bg-black border border-amber-500/50 rounded-[2rem] p-10 shadow-[0_0_80px_rgba(255,191,0,0.2)] overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_20px_#FFBF00]"></div>
+                      <div className="text-center mb-10">
+                          <div className="w-16 h-16 bg-amber-500/10 rounded-full border border-amber-500/30 flex items-center justify-center mx-auto mb-6">
+                              <Flame className="text-amber-500 w-8 h-8 animate-pulse" />
+                          </div>
+                          <h2 className="text-2xl font-tech text-white uppercase tracking-widest leading-none">Phoenix Protocol</h2>
+                          <p className="text-[10px] text-amber-500/60 uppercase font-mono tracking-widest mt-3">Author Override Sequence Required</p>
+                      </div>
+                      <form onSubmit={handleAdminAuth} className="space-y-6">
+                          <div className="relative">
+                              <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/50" />
+                              <input 
+                                type="password" 
+                                value={adminCode}
+                                onChange={(e) => setAdminCode(e.target.value)}
+                                placeholder="PUNCH CODE..."
+                                className="w-full bg-amber-500/5 border border-amber-500/20 rounded-xl py-4 pl-12 pr-4 text-center font-tech text-white text-xl tracking-[0.5em] focus:outline-none focus:border-amber-500 focus:bg-amber-500/10 transition-all"
+                                autoFocus
+                              />
+                          </div>
+                          <button 
+                            type="submit"
+                            className="w-full py-4 bg-amber-500 text-black font-tech text-sm uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-xl font-bold"
+                          >
+                              Unlock Root Access
+                          </button>
+                      </form>
+                      <button 
+                        onClick={() => setShowPhoenixModal(false)}
+                        className="mt-6 w-full text-center text-gray-600 hover:text-white uppercase font-mono text-[9px] tracking-[0.3em] transition-colors"
+                      >
+                          Cancel Sequence
+                      </button>
+                  </div>
+              </div>
           )}
 
           <div className="relative z-10 h-full w-full overflow-hidden">
@@ -453,6 +520,7 @@ const AppContent: React.FC = () => {
                     onUpdateProfile={handleUpdateProfile}
                     onBack={handleGoBack}
                     isUnlocked={effectiveIsPremium}
+                    user={userProfile}
                 />
             )}
 
@@ -469,6 +537,7 @@ const AppContent: React.FC = () => {
                 queriesUsed={queriesUsed}
                 onQuery={handleQueryIncrement}
                 onEditNeuron={handleEditNeuron}
+                onPhoenixTrigger={handlePhoenixTrigger}
               />
             )}
           </div>

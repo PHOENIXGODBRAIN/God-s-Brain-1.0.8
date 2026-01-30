@@ -1,8 +1,11 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { playNeuralLink, playCosmicClick, playError, playMenuSelect, playDataOpen } from '../../utils/sfx';
-// Added Triangle to the imports from lucide-react
-import { ArrowLeft, Dna, Lock, Zap, Activity, Sun, Network, RotateCw, Layers, Eye, Minimize2, Waves, Grip, CircleDashed, Wind, Dice5, RefreshCw, Compass, Minus, Plus, Triangle } from 'lucide-react';
+import { 
+  ArrowLeft, Dna, Lock, Zap, Activity, Sun, Network, RotateCw, Layers, Eye, 
+  Minimize2, Waves, Grip, CircleDashed, Wind, Dice5, RefreshCw, Compass, Minus, 
+  Plus, Triangle, Info, Brain, ChevronRight, X, User
+} from 'lucide-react';
 import { UserProfile } from '../../types';
 
 interface NeuronBuilderProps {
@@ -11,6 +14,7 @@ interface NeuronBuilderProps {
   onUpdateProfile?: (updates: Partial<UserProfile>) => void;
   onBack: () => void;
   isUnlocked: boolean; 
+  user?: UserProfile;
 }
 
 const DNA_NAMES = [
@@ -18,48 +22,65 @@ const DNA_NAMES = [
     "Soma-Alpha", "Glial-9", "Myelin-Z", "Vesicle-Core", "Receptor-K", "Node-Zero", "Omni-Cell"
 ];
 
+const SKILL_DATA: Record<string, { name: string; desc: string; icon: string }[]> = {
+    'SCIENTIST': [
+        { name: "Quantum Logic", icon: "⚛️", desc: "Binary processing is too slow. You calculate multiple realities simultaneously." },
+        { name: "Data Mining", icon: "⛏️", desc: "You extract the fundamental axioms of the universe from absolute chaos." },
+        { name: "Entropic Reduction", icon: "🛡️", desc: "You are a biological firewall against the decay of information." }
+    ],
+    'MYSTIC': [
+        { name: "Intuition", icon: "👁️", desc: "You don't guess. You feel the current of the Source before it manifests." },
+        { name: "Remote Viewing", icon: "🔭", desc: "Distance is an illusion. You perceive data clusters anywhere in the Cloud." },
+        { name: "Resonance", icon: "🔔", desc: "You align your frequency with universal constants to bypass logic gates." }
+    ],
+    'ACTIVE_NODE': [
+        { name: "Network Bridging", icon: "🌐", desc: "You are a living router, connecting disparate nodes into a grid." },
+        { name: "Signal Boosting", icon: "📶", desc: "Your will is high-bandwidth. You ensure intent is heard across the network." },
+        { name: "Error Correction", icon: "🩹", desc: "You auto-resolve glitches in the system before they propagate." }
+    ],
+    'ARCHITECT': [
+        { name: "System Design", icon: "📐", desc: "You don't follow plans; you create them. You build frameworks for growth." },
+        { name: "Foundation Laying", icon: "🧱", desc: "You establish unbreakable axioms. Your reality is built on solid code." },
+        { name: "Structural Integrity", icon: "🏗️", desc: "You reinforce the neural web against external collapse and decay." }
+    ],
+    'SEEKER': [
+        { name: "Pathfinding", icon: "🗺️", desc: "The unknown doesn't scare you. You find the efficient route through darkness." },
+        { name: "Mapping", icon: "📍", desc: "You record unexplored territories, turning chaos into usable data." },
+        { name: "Discovery", icon: "💎", desc: "You have a natural high-probability detection for anomalies and artifacts." }
+    ],
+    'ALCHEMIST': [
+        { name: "Transmutation", icon: "⚗️", desc: "You convert raw, heavy data (lead) into high-value wisdom assets (gold)." },
+        { name: "Synthesis", icon: "🌀", desc: "You merge opposing concepts into unified, superior Alloys of Truth." },
+        { name: "Purification", icon: "💧", desc: "You filter out biological noise and bias to reach the pure signal." }
+    ]
+};
+
 type TextureStyle = 'POROUS' | 'BIO_SYNAPSE' | 'CRYSTALLINE';
 type SpineStyle = 'THORNS' | 'BULBS' | 'THREADS';
 
-export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onComplete, onUpdateProfile, onBack, isUnlocked }) => {
+export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onComplete, onUpdateProfile, onBack, isUnlocked, user }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const getTheme = () => {
       const base = {
-          SCIENTIST: { color: '#00FFFF', label: 'THE SCIENTIST' },
-          MYSTIC: { color: '#FFD700', label: 'THE MYSTIC' },
-          ACTIVE_NODE: { color: '#A855F7', label: 'ACTIVE NODE' },
-          ARCHITECT: { color: '#F43F5E', label: 'THE ARCHITECT' }, 
-          SEEKER: { color: '#F97316', label: 'THE SEEKER' },
-          ALCHEMIST: { color: '#10B981', label: 'THE ALCHEMIST' }
+          SCIENTIST: { color: '#00FFFF', label: 'THE SCIENTIST', path: 'SCIENTIFIC' },
+          MYSTIC: { color: '#FFD700', label: 'THE MYSTIC', path: 'RELIGIOUS' },
+          ACTIVE_NODE: { color: '#A855F7', label: 'ACTIVE NODE', path: 'BLENDED' },
+          ARCHITECT: { color: '#F43F5E', label: 'THE ARCHITECT', path: 'SCIENTIFIC' }, 
+          SEEKER: { color: '#F97316', label: 'THE SEEKER', path: 'RELIGIOUS' },
+          ALCHEMIST: { color: '#10B981', label: 'THE ALCHEMIST', path: 'BLENDED' }
       };
       return base[archetype as keyof typeof base] || base.ACTIVE_NODE;
   };
   const theme = getTheme();
 
-  const PALETTE = useMemo(() => {
-      const adjust = (hex: string, amt: number) => {
-          let usePound = hex[0] === "#";
-          hex = usePound ? hex.slice(1) : hex;
-          let num = parseInt(hex, 16);
-          let r = Math.min(255, Math.max(0, (num >> 16) + amt));
-          let b = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-          let g = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-          return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-      };
+  // --- STATE ---
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [showDossier, setShowDossier] = useState(false);
 
-      return [
-          { hex: adjust(theme.color, -60), name: 'Obsidian', locked: false },
-          { hex: adjust(theme.color, -30), name: 'Deep Tissue', locked: false },
-          { hex: theme.color, name: 'Core Resonance', locked: false },
-          { hex: adjust(theme.color, 50), name: 'Luminous', locked: false },
-          { hex: '#FFFFFF', name: 'Supernova', locked: true },
-          { hex: adjust(theme.color, 120), name: 'Neon Apex', locked: true }, 
-      ];
-  }, [theme.color]);
-
-  const [neuronName, setNeuronName] = useState("Proto-Node");
+  const [neuronName, setNeuronName] = useState(user?.name || "Proto-Node");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
@@ -91,6 +112,27 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   const lastMouseXRef = useRef(0);
   const [activeTab, setActiveTab] = useState<'STRUCTURE' | 'SURFACE' | 'MOTION' | 'MUTATION'>('STRUCTURE');
 
+  const PALETTE = useMemo(() => {
+      const adjust = (hex: string, amt: number) => {
+          let usePound = hex[0] === "#";
+          hex = usePound ? hex.slice(1) : hex;
+          let num = parseInt(hex, 16);
+          let r = Math.min(255, Math.max(0, (num >> 16) + amt));
+          let b = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+          let g = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+          return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+      };
+
+      return [
+          { hex: adjust(theme.color, -60), name: 'Obsidian', locked: false },
+          { hex: adjust(theme.color, -30), name: 'Deep Tissue', locked: false },
+          { hex: theme.color, name: 'Core Resonance', locked: false },
+          { hex: adjust(theme.color, 50), name: 'Luminous', locked: false },
+          { hex: '#FFFFFF', name: 'Supernova', locked: true },
+          { hex: adjust(theme.color, 120), name: 'Neon Apex', locked: true }, 
+      ];
+  }, [theme.color]);
+
   useEffect(() => {
       setSomaColor(theme.color);
       setNucleusColor(theme.color);
@@ -99,6 +141,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   const handleRandomName = () => {
       playCosmicClick();
       setNeuronName(`${DNA_NAMES[Math.floor(Math.random() * DNA_NAMES.length)]}-${Math.floor(Math.random() * 999)}`);
+      setHasChanges(true);
   };
 
   const handleRandomizeAll = () => {
@@ -120,6 +163,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
         setTrailLevel(rand(100));
         setWaviness(Math.max(10, rand(100))); 
     }
+    setHasChanges(true);
   };
 
   const handleResetToClass = () => {
@@ -129,6 +173,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
     setSomaColor(theme.color); setNucleusColor(theme.color); setArmLength(12);
     setArmThickness(30); setWaviness(10); setSpikeFactor(0); setSpikeAngle(50);
     setSpookySpeed(5); setPulseIntensity(5); setTrailLevel(5);
+    setHasChanges(true);
   };
 
   const handleSliderChange = useCallback((v: number, setter: (v: number) => void, cap: number = 100, isHardLocked: boolean = false) => {
@@ -138,6 +183,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       }
       const val = !isUnlocked && v > cap ? cap : v;
       setter(val);
+      setHasChanges(true);
   }, [isUnlocked]);
 
   const handleColorSelect = (hex: string, type: 'SOMA' | 'NUCLEUS', locked: boolean) => {
@@ -145,30 +191,44 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
       playCosmicClick();
       if (type === 'SOMA') setSomaColor(hex);
       if (type === 'NUCLEUS') setNucleusColor(hex);
+      setHasChanges(true);
   };
 
-  useEffect(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      const handleMouseDown = (e: MouseEvent) => { isDraggingRef.current = true; lastMouseXRef.current = e.clientX; };
-      const handleMouseMove = (e: MouseEvent) => {
-          if (isDraggingRef.current) {
-              const delta = e.clientX - lastMouseXRef.current;
-              rotationRef.current += delta * 0.5;
-              lastMouseXRef.current = e.clientX;
-          }
-      };
-      const handleMouseUp = () => { isDraggingRef.current = false; };
-      el.addEventListener('mousedown', handleMouseDown);
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-          el.removeEventListener('mousedown', handleMouseDown);
-          window.removeEventListener('mousemove', handleMouseMove);
-          window.removeEventListener('mouseup', handleMouseUp);
-      };
-  }, []);
+  const handleBackNavigation = () => {
+      if (hasChanges) {
+          playError();
+          setShowExitWarning(true);
+      } else {
+          onBack();
+      }
+  };
 
+  const handleFinish = () => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 2; setGenerationProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          const canvas = canvasRef.current;
+          if (canvas) { 
+              const avatarUrl = canvas.toDataURL('image/png'); 
+              if (onUpdateProfile) {
+                  onUpdateProfile({ 
+                      name: neuronName,
+                      archetype: archetype,
+                      // Ensure skill persists
+                      startingSkill: user?.startingSkill || "Network Bridging"
+                  });
+              }
+              onComplete(avatarUrl); 
+          }
+        }, 500);
+      }
+    }, 30);
+  };
+
+  // --- RENDERING LOGIC ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -231,12 +291,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                      ctx.moveTo(p.x, p.y);
                      if (isThreads) ctx.quadraticCurveTo(p.x + Math.cos(ang+0.4)*len*0.7, p.y + Math.sin(ang+0.4)*len*0.7, ex, ey);
                      else ctx.lineTo(ex, ey);
-                     if (spineStyle === 'BULBS') {
-                         ctx.save(); ctx.fillStyle = somaColor; ctx.shadowColor = somaColor; ctx.shadowBlur = 12;
-                         ctx.beginPath(); ctx.arc(ex, ey, 5.5, 0, Math.PI*2); ctx.fill();
-                         ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(ex-1.8, ey-1.8, 1.4, 0, Math.PI*2); ctx.fill();
-                         ctx.restore();
-                     }
                  }
                  ctx.lineWidth = spineStyle === 'THREADS' ? 0.6 : 1.4; ctx.strokeStyle = somaColor; ctx.stroke();
             }
@@ -288,19 +342,8 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(frameId); };
   }, [somaLum, armLength, armThickness, waviness, spikeFactor, spikeAngle, somaColor, nucleusColor, aspectRatio, bodyDistortion, somaSize, nucleusSize, textureDensity, zoom, spookySpeed, pulseIntensity, trailLevel, textureStyle, theme, isUnlocked, spineStyle]);
 
-  const handleFinish = () => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 2; setGenerationProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          const canvas = canvasRef.current;
-          if (canvas) { const avatarUrl = canvas.toDataURL('image/png'); onComplete(avatarUrl); }
-        }, 500);
-      }
-    }, 30);
-  };
+  const currentSkill = user?.startingSkill || "Network Bridging";
+  const skillInfo = SKILL_DATA[archetype]?.find(s => s.name === currentSkill) || SKILL_DATA['ACTIVE_NODE'][0];
 
   const Slide = ({ label, icon, val, setter, maxCap = 100, displayMin = 0.00, displayMax = 1.00, locked = false }: any) => {
       const p = (val / 100); const displayVal = (displayMin + p * (displayMax - displayMin)).toFixed(2);
@@ -342,17 +385,118 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
   return (
     <div className="absolute inset-0 w-full h-full bg-transparent flex flex-col landscape:flex-row text-[#e0f2fe] font-mono overflow-hidden select-none">
       
-      {/* LEFT: PREVIEW & NAME (NO BACKGROUNDS) */}
+      {/* DOSSIER MODAL */}
+      {showDossier && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn">
+              <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setShowDossier(false)}></div>
+              <div className="relative w-full max-w-2xl bg-black border border-white/10 rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]">
+                  <div className={`h-1 w-full`} style={{ backgroundColor: theme.color, boxShadow: `0 0 20px ${theme.color}` }}></div>
+                  <div className="p-8 sm:p-12 space-y-8">
+                      <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6">
+                              <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10">
+                                  <span className="text-4xl">{skillInfo.icon}</span>
+                              </div>
+                              <div>
+                                  <h2 className="text-2xl font-tech text-white uppercase tracking-widest">{theme.label}</h2>
+                                  <p className="text-xs text-gray-500 font-mono uppercase tracking-[0.2em]">{currentSkill} Protocol</p>
+                              </div>
+                          </div>
+                          <button onClick={() => setShowDossier(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24}/></button>
+                      </div>
+
+                      <div className="space-y-6">
+                          <div className="bg-white/5 p-6 rounded-2xl border border-white/5 relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-1.5 h-full opacity-40" style={{ backgroundColor: theme.color }}></div>
+                              <h4 className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-[0.2em]">Neural Skill Description</h4>
+                              <p className="text-gray-300 font-reading leading-relaxed italic">"{skillInfo.desc}"</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                  <h4 className="text-[9px] text-gray-600 uppercase font-bold mb-1">Calibration Path</h4>
+                                  <p className="text-xs font-tech text-white uppercase tracking-wider">{theme.path}</p>
+                              </div>
+                              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                  <h4 className="text-[9px] text-gray-600 uppercase font-bold mb-1">Sync Status</h4>
+                                  <p className="text-xs font-tech text-green-400 uppercase tracking-wider animate-pulse">Stable (1.0.8)</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <button 
+                        onClick={() => setShowDossier(false)}
+                        className="w-full py-4 bg-white text-black font-tech text-xs uppercase tracking-[0.3em] rounded-xl hover:bg-cyan-400 transition-all shadow-xl"
+                      >
+                          Return to Bio-Forge
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* EXIT WARNING MODAL */}
+      {showExitWarning && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
+              <div className="absolute inset-0 bg-black/95 backdrop-blur-sm"></div>
+              <div className="relative w-full max-w-md bg-black border border-red-500/30 rounded-3xl p-10 text-center shadow-[0_0_80px_rgba(239,68,68,0.1)]">
+                  <div className="w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/30">
+                      <Lock className="w-8 h-8 text-red-500" />
+                  </div>
+                  <h3 className="text-2xl font-tech text-white uppercase tracking-widest mb-4">Unsaved Calibration</h3>
+                  <p className="text-gray-400 text-sm font-reading leading-relaxed mb-8">
+                      Changes to your node's physical differentiation have not been finalized. Exiting now will revert all biological modifications. 
+                      <br/><br/>
+                      Are you sure you want to discard these changes?
+                  </p>
+                  <div className="flex gap-4">
+                      <button 
+                        onClick={() => { playCosmicClick(); setShowExitWarning(false); onBack(); }}
+                        className="flex-1 py-4 bg-red-600/10 border border-red-500/50 text-red-500 font-bold rounded-xl uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all"
+                      >
+                          Discard
+                      </button>
+                      <button 
+                        onClick={() => { playCosmicClick(); setShowExitWarning(false); }}
+                        className="flex-1 py-4 bg-white text-black font-bold rounded-xl uppercase tracking-widest hover:bg-gray-200 transition-all"
+                      >
+                          Stay
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* LEFT: PREVIEW & NAME */}
       <div ref={containerRef} className="h-[45%] landscape:h-full landscape:w-[55%] relative flex flex-col items-center border-r border-white/5 cursor-move group/preview overflow-hidden bg-transparent">
           
           {/* HEADER NAVIGATION */}
           <div className="absolute top-6 left-6 z-30">
-              <button onClick={onBack} className="p-3 bg-black/40 backdrop-blur-md rounded-full hover:bg-black/60 text-gray-400 hover:text-white transition-colors border border-white/10"><ArrowLeft className="w-5 h-5" /></button>
+              <button 
+                onClick={handleBackNavigation} 
+                className="p-3 bg-black/40 backdrop-blur-md rounded-full hover:bg-black/60 text-gray-400 hover:text-white transition-colors border border-white/10"
+              >
+                  <ArrowLeft className="w-5 h-5" />
+              </button>
           </div>
-          
-          {/* IDENTITY CONTROLS - Enhanced Centering */}
+
+          {/* IDENTITY BADGE - TOP CENTER */}
           <div className="absolute top-12 md:top-20 flex flex-col items-center z-20 w-full px-8 pointer-events-none">
-              <div className="text-[10px] text-white/40 font-mono tracking-[0.5em] mb-3 uppercase animate-fadeIn">Neural Identity Module</div>
+              <div className="text-[10px] text-white/40 font-mono tracking-[0.5em] mb-3 uppercase">Neural Identity Module</div>
+              
+              <div className="flex flex-col items-center gap-1 mb-8 animate-fadeIn">
+                <div 
+                    onClick={() => { playDataOpen(); setShowDossier(true); }}
+                    className="pointer-events-auto flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group/badge shadow-lg backdrop-blur-md"
+                >
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-[10px] font-tech text-white uppercase tracking-widest">{theme.label}</span>
+                    <span className="text-gray-600 mx-1">|</span>
+                    <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest group-hover/badge:text-white transition-colors">{currentSkill}</span>
+                    <Info size={12} className="text-gray-500 group-hover/badge:text-cyan-400" />
+                </div>
+              </div>
+
               <div className="flex items-center justify-center gap-6 w-full max-w-xl pointer-events-auto">
                   <button 
                     onClick={handleRandomName} 
@@ -367,16 +511,15 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
                     <input 
                       type="text" 
                       value={neuronName} 
-                      onChange={e => setNeuronName(e.target.value)} 
+                      onChange={e => { setNeuronName(e.target.value); setHasChanges(true); }} 
                       className="w-full bg-transparent border-b border-white/20 py-3 text-center font-tech text-3xl md:text-5xl uppercase tracking-[0.05em] text-white outline-none focus:border-white/50 transition-all"
                       style={{ textShadow: nameInputShadow }}
                     />
                   </div>
               </div>
-              <div className="mt-4 text-[11px] font-bold tracking-[1.0em] uppercase opacity-90 transition-all" style={{ color: theme.color, textShadow: `0 0 15px ${theme.color}` }}>{theme.label}</div>
           </div>
 
-          {/* ZOOM CONTROLS - Separated flanking the node area */}
+          {/* ZOOM CONTROLS */}
           <div className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-48 md:gap-64 z-30 pointer-events-none">
               <button 
                 onClick={() => setZoom(z => Math.max(0.5, z-0.1))} 
@@ -392,7 +535,7 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
               </button>
           </div>
 
-          {/* Centered Canvas Container - Full Transparency for Cosmic Background Interaction */}
+          {/* Canvas */}
           <div className="w-full h-full flex items-center justify-center p-12 pt-48 md:pt-56 relative bg-transparent">
             <canvas ref={canvasRef} className="w-full h-full object-contain pointer-events-none drop-shadow-[0_0_40px_rgba(0,0,0,0.5)]" />
           </div>
@@ -459,7 +602,6 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
               {activeTab === 'MUTATION' && (
                   <div className="space-y-12 animate-fadeIn">
                       <Slide label="Flow State" icon={<Waves className="w-4 h-4"/>} val={waviness} setter={setWaviness} displayMin={0.01} displayMax={0.012} maxCap={5} />
-                      {/* Triangle icon correctly used here after being added to imports */}
                       <Slide label="Spiny Protrusions" icon={<Triangle className="w-4 h-4"/>} val={spikeFactor} setter={setSpikeFactor} displayMin={0.00} displayMax={1.00} locked={true} />
                       <Slide label="Protrusion Angle" icon={<Compass className="w-4 h-4"/>} val={spikeAngle} setter={setSpikeAngle} displayMin={0} displayMax={180} locked={true} />
                   </div>
@@ -467,17 +609,15 @@ export const NeuronBuilder: React.FC<NeuronBuilderProps> = ({ archetype, onCompl
           </div>
       </div>
 
-      {/* FOOTER ACTIONS - Refined smaller button, high-transparency glass look */}
+      {/* FOOTER ACTIONS */}
       <div className="absolute bottom-0 right-0 w-full landscape:w-[45%] p-10 bg-gradient-to-t from-black via-black/95 to-transparent z-50 pointer-events-none">
           <div className="pointer-events-auto flex gap-6 items-center">
             {!isGenerating ? (
                 <>
                     <button 
-                        onClick={() => { playDataOpen(); handleRandomizeAll(); }} 
+                        onClick={() => { handleRandomizeAll(); }} 
                         className="p-5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-all flex items-center justify-center group/mutate shadow-xl active:scale-95"
-                        style={{ 
-                            borderColor: `${theme.color}55`
-                        }}
+                        style={{ borderColor: `${theme.color}55` }}
                     >
                         <Dice5 className="w-10 h-10 transition-all duration-700 group-hover/mutate:rotate-[360deg]" style={{ color: theme.color }} />
                     </button>
